@@ -1,0 +1,156 @@
+/* ─── Google Fonts — must come before @import "tailwindcss" ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --color-primary: #3713ec;
+  --color-bg-light: #F5F5F7;
+  --color-bg-white: #FFFFFF;
+  --color-bg-dark: #000000;
+  --color-text-headline: #1D1D1F;
+  --color-text-body: #6E6E73;
+  --color-border-light: rgba(0, 0, 0, 0.08);
+  --color-border-dark: rgba(255, 255, 255, 0.1);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Base ──────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #000;
+  color: #1D1D1F;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ─── Smooth transitions (only on interactive elements) ─────── */
+a,
+button,
+[role="button"] {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ─── Typography ────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+/* ─── Selection ─────────────────────────────────────────────── */
+::selection {
+  background: rgba(55, 19, 236, 0.2);
+  color: #3713ec;
+}
+
+/* ─── Glassmorphism utilities ───────────────────────────────── */
+.glass-dark {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Hero blob animations ──────────────────────────────────── */
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.97); }
+}
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 20px) scale(1.03); }
+  66% { transform: translate(20px, -15px) scale(0.98); }
+}
+@keyframes blobFloat3 {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+
+.hero-blob-1 { animation: blobFloat1 12s ease-in-out infinite; }
+.hero-blob-2 { animation: blobFloat2 15s ease-in-out infinite; }
+.hero-blob-3 { animation: blobFloat3 10s ease-in-out infinite; }
+
+/* ─── Spin animation for loading ───────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Responsive helpers ────────────────────────────────────── */
+.bcs-desktop-nav {
+  display: flex;
+}
+.bcs-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .bcs-desktop-nav {
+    display: none !important;
+  }
+  .bcs-mobile-nav {
+    display: flex !important;
+  }
+}
+
+/* ─── Input resets (for Clerk and custom forms) ─────────────── */
+input, select, textarea {
+  font-family: var(--font-sans);
+}
+
+/* ─── Tailwind v4 custom color helpers ──────────────────────── */
+.bg-primary { background-color: #3713ec !important; }
+.text-primary { color: #3713ec !important; }
+.border-primary { border-color: #3713ec !important; }
+
+/* ─── Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-blob-1,
+  .hero-blob-2,
+  .hero-blob-3 {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
