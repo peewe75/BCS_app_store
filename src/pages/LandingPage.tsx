@@ -193,15 +193,16 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
 
   return (
     <motion.div
+      className="bcs-coming-card"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        background: 'rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
+        border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: '20px',
         padding: '32px',
         display: 'flex',
@@ -229,7 +230,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
             fontSize: '11px',
             fontWeight: 600,
             letterSpacing: '0.05em',
-            fontFamily: '"Inter", system-ui, sans-serif',
+            fontFamily: 'var(--font-display)',
           }}
         >
           PROSSIMAMENTE
@@ -241,7 +242,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
         <h3
           style={{
             color: '#FFFFFF',
-            fontFamily: '"Inter", system-ui, sans-serif',
+            fontFamily: 'var(--font-display)',
             fontSize: '22px',
             fontWeight: 700,
             letterSpacing: '-0.02em',
@@ -253,7 +254,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
         <p
           style={{
             color: 'rgba(255,255,255,0.5)',
-            fontFamily: '"Inter", system-ui, sans-serif',
+            fontFamily: 'var(--font-display)',
             fontSize: '14px',
             fontWeight: 400,
             marginTop: '6px',
@@ -269,7 +270,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
         <p
           style={{
             color: '#4ade80',
-            fontFamily: '"Inter", system-ui, sans-serif',
+            fontFamily: 'var(--font-display)',
             fontSize: '13px',
             fontWeight: 500,
           }}
@@ -294,7 +295,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
               background: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.12)',
               color: '#FFFFFF',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '13px',
               outline: 'none',
               minWidth: 0,
@@ -309,7 +310,7 @@ const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ emoji, name, tagline, i
               color: '#FFFFFF',
               border: 'none',
               cursor: 'pointer',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '13px',
               fontWeight: 600,
               whiteSpace: 'nowrap',
@@ -337,7 +338,7 @@ const LandingPage: React.FC = () => {
         style={{
           position: 'relative',
           minHeight: '100vh',
-          background: '#000',
+          background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(55,19,236,0.08) 0%, #0a0a0a 70%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -361,11 +362,11 @@ const LandingPage: React.FC = () => {
               position: 'absolute',
               top: '10%',
               left: '15%',
-              width: '500px',
-              height: '500px',
+              width: '700px',
+              height: '700px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(55,19,236,0.18) 0%, transparent 70%)',
-              filter: 'blur(40px)',
+              background: 'radial-gradient(circle, rgba(55,19,236,0.25) 0%, rgba(99,51,255,0.08) 40%, transparent 70%)',
+              filter: 'blur(60px)',
             }}
           />
           <div
@@ -374,11 +375,11 @@ const LandingPage: React.FC = () => {
               position: 'absolute',
               bottom: '10%',
               right: '15%',
-              width: '400px',
-              height: '400px',
+              width: '550px',
+              height: '550px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99,51,255,0.14) 0%, transparent 70%)',
-              filter: 'blur(40px)',
+              background: 'radial-gradient(circle, rgba(99,51,255,0.2) 0%, rgba(139,92,246,0.06) 45%, transparent 70%)',
+              filter: 'blur(50px)',
             }}
           />
           <div
@@ -388,11 +389,11 @@ const LandingPage: React.FC = () => {
               top: '40%',
               left: '50%',
               transform: 'translateX(-50%)',
-              width: '600px',
-              height: '300px',
+              width: '800px',
+              height: '400px',
               borderRadius: '50%',
-              background: 'radial-gradient(ellipse, rgba(55,19,236,0.08) 0%, transparent 70%)',
-              filter: 'blur(60px)',
+              background: 'radial-gradient(ellipse, rgba(55,19,236,0.15) 0%, rgba(167,139,250,0.04) 50%, transparent 70%)',
+              filter: 'blur(80px)',
             }}
           />
         </div>
@@ -427,7 +428,7 @@ const LandingPage: React.FC = () => {
                 background: 'rgba(255,255,255,0.07)',
                 border: '1px solid rgba(255,255,255,0.12)',
                 color: 'rgba(255,255,255,0.7)',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '13px',
                 fontWeight: 500,
                 letterSpacing: '0.01em',
@@ -455,7 +456,7 @@ const LandingPage: React.FC = () => {
             animate="visible"
             variants={fadeUp}
             style={{
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: 'clamp(40px, 6vw, 76px)',
               fontWeight: 800,
               color: '#FFFFFF',
@@ -485,7 +486,7 @@ const LandingPage: React.FC = () => {
             animate="visible"
             variants={fadeUp}
             style={{
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: 'clamp(17px, 2vw, 20px)',
               fontWeight: 400,
               color: 'rgba(255,255,255,0.55)',
@@ -517,7 +518,7 @@ const LandingPage: React.FC = () => {
                 borderRadius: '100px',
                 background: '#3713ec',
                 color: '#FFFFFF',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '16px',
                 fontWeight: 600,
                 letterSpacing: '-0.01em',
@@ -551,7 +552,7 @@ const LandingPage: React.FC = () => {
                 background: 'transparent',
                 color: 'rgba(255,255,255,0.8)',
                 border: '1px solid rgba(255,255,255,0.2)',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '16px',
                 fontWeight: 500,
                 letterSpacing: '-0.01em',
@@ -628,7 +629,7 @@ const LandingPage: React.FC = () => {
           <span
             style={{
               color: '#9ca3af',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '12px',
               fontWeight: 500,
               letterSpacing: '0.08em',
@@ -645,7 +646,7 @@ const LandingPage: React.FC = () => {
             </svg>
             <span
               style={{
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '14px',
                 fontWeight: 600,
                 color: '#1D1D1F',
@@ -665,7 +666,7 @@ const LandingPage: React.FC = () => {
             <span style={{ fontSize: '16px' }}>☁️</span>
             <span
               style={{
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '14px',
                 fontWeight: 600,
                 color: '#1D1D1F',
@@ -683,7 +684,7 @@ const LandingPage: React.FC = () => {
           />
           <span
             style={{
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '14px',
               fontWeight: 500,
               color: '#6b7280',
@@ -744,7 +745,7 @@ const LandingPage: React.FC = () => {
                 fontSize: '12px',
                 fontWeight: 600,
                 letterSpacing: '0.06em',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 marginBottom: '20px',
               }}
             >
@@ -752,7 +753,7 @@ const LandingPage: React.FC = () => {
             </span>
             <h2
               style={{
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(32px, 4vw, 52px)',
                 fontWeight: 800,
                 color: '#FFFFFF',
@@ -766,7 +767,7 @@ const LandingPage: React.FC = () => {
             <p
               style={{
                 color: 'rgba(255,255,255,0.45)',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '17px',
                 marginTop: '12px',
               }}
@@ -815,7 +816,7 @@ const LandingPage: React.FC = () => {
           >
             <h2
               style={{
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(32px, 4vw, 48px)',
                 fontWeight: 800,
                 color: '#1D1D1F',
@@ -830,7 +831,7 @@ const LandingPage: React.FC = () => {
             <p
               style={{
                 color: '#6E6E73',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '17px',
                 marginTop: '12px',
               }}
@@ -866,7 +867,7 @@ const LandingPage: React.FC = () => {
                 <span
                   key={h}
                   style={{
-                    fontFamily: '"Inter", system-ui, sans-serif',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '11px',
                     fontWeight: 700,
                     color: '#6E6E73',
@@ -886,36 +887,34 @@ const LandingPage: React.FC = () => {
               return (
                 <div
                   key={app.id}
+                  className="bcs-pricing-row"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '2fr 1.2fr 1.2fr 1fr',
                     padding: '20px 28px',
                     alignItems: 'center',
-                    borderBottom: i < activeApps.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-                    transition: 'background 0.15s ease',
+                    borderBottom: i < activeApps.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#fafafa'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
                       {emoji}
                     </span>
-                    <span style={{ fontFamily: '"Inter", system-ui, sans-serif', fontSize: '14px', fontWeight: 600, color: '#1D1D1F' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 600, color: '#1D1D1F' }}>
                       {app.name}
                     </span>
                   </div>
-                  <span style={{ fontFamily: '"Inter", system-ui, sans-serif', fontSize: '13px', color: '#6E6E73' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '13px', color: '#6E6E73' }}>
                     {app.pricing_model ?? '—'}
                   </span>
-                  <span style={{ fontFamily: '"Inter", system-ui, sans-serif', fontSize: '14px', fontWeight: 600, color: '#1D1D1F' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 600, color: '#1D1D1F' }}>
                     {app.price_label ?? app.pricing_badge ?? '—'}
                   </span>
                   <a
                     href={app.cta_href ?? '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: '100px', background: `${accent}15`, color: accent, border: `1px solid ${accent}30`, fontFamily: '"Inter", system-ui, sans-serif', fontSize: '13px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', whiteSpace: 'nowrap' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: '100px', background: `${accent}15`, color: accent, border: `1px solid ${accent}30`, fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', whiteSpace: 'nowrap' }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = `${accent}25`; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = `${accent}15`; }}
                   >
@@ -952,7 +951,7 @@ const LandingPage: React.FC = () => {
         >
           <h2
             style={{
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: 'clamp(36px, 5vw, 60px)',
               fontWeight: 800,
               color: '#FFFFFF',
@@ -968,7 +967,7 @@ const LandingPage: React.FC = () => {
           <p
             style={{
               color: 'rgba(255,255,255,0.5)',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '18px',
               margin: 0,
               lineHeight: 1.6,
@@ -989,7 +988,7 @@ const LandingPage: React.FC = () => {
               borderRadius: '100px',
               background: '#FFFFFF',
               color: '#000000',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '17px',
               fontWeight: 700,
               letterSpacing: '-0.02em',
@@ -1012,7 +1011,7 @@ const LandingPage: React.FC = () => {
           <p
             style={{
               color: 'rgba(255,255,255,0.25)',
-              fontFamily: '"Inter", system-ui, sans-serif',
+              fontFamily: 'var(--font-display)',
               fontSize: '13px',
             }}
           >
@@ -1046,7 +1045,7 @@ const LandingPage: React.FC = () => {
               <p
                 style={{
                   color: 'rgba(255,255,255,0.35)',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                   lineHeight: 1.7,
                   margin: 0,
@@ -1058,7 +1057,7 @@ const LandingPage: React.FC = () => {
                 style={{
                   marginTop: '16px',
                   color: 'rgba(255,255,255,0.25)',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '12px',
                   lineHeight: 1.6,
                 }}
@@ -1073,7 +1072,7 @@ const LandingPage: React.FC = () => {
               <h4
                 style={{
                   color: '#FFFFFF',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                   fontWeight: 600,
                   letterSpacing: '0.04em',
@@ -1098,7 +1097,7 @@ const LandingPage: React.FC = () => {
                       rel="noopener noreferrer"
                       style={{
                         color: 'rgba(255,255,255,0.45)',
-                        fontFamily: '"Inter", system-ui, sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '14px',
                         textDecoration: 'none',
                         transition: 'color 0.2s',
@@ -1118,7 +1117,7 @@ const LandingPage: React.FC = () => {
               <h4
                 style={{
                   color: '#FFFFFF',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                   fontWeight: 600,
                   letterSpacing: '0.04em',
@@ -1135,7 +1134,7 @@ const LandingPage: React.FC = () => {
                       href="#"
                       style={{
                         color: 'rgba(255,255,255,0.45)',
-                        fontFamily: '"Inter", system-ui, sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '14px',
                         textDecoration: 'none',
                         transition: 'color 0.2s',
@@ -1155,7 +1154,7 @@ const LandingPage: React.FC = () => {
               <h4
                 style={{
                   color: '#FFFFFF',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                   fontWeight: 600,
                   letterSpacing: '0.04em',
@@ -1172,7 +1171,7 @@ const LandingPage: React.FC = () => {
                       href="#"
                       style={{
                         color: 'rgba(255,255,255,0.45)',
-                        fontFamily: '"Inter", system-ui, sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '14px',
                         textDecoration: 'none',
                         transition: 'color 0.2s',
@@ -1203,7 +1202,7 @@ const LandingPage: React.FC = () => {
             <p
               style={{
                 color: 'rgba(255,255,255,0.25)',
-                fontFamily: '"Inter", system-ui, sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontSize: '13px',
                 margin: 0,
               }}
@@ -1223,7 +1222,7 @@ const LandingPage: React.FC = () => {
               <span
                 style={{
                   color: 'rgba(255,255,255,0.25)',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontSize: '13px',
                 }}
               >

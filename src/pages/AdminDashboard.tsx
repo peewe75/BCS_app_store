@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useApps } from '../hooks/useApps';
+import AppManagementTab from '../components/admin/AppManagementTab';
 
 /* ─── Types ──────────────────────────────────────────────────── */
 interface UserRecord {
@@ -239,7 +241,11 @@ const AdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'admin' | 'premium' | 'user'>('all');
+  const [activeTab, setActiveTab] = useState<'users' | 'apps'>('users');
   const isDbConnected = supabase !== null;
+
+  // Apps data for the App management tab
+  const { apps: allApps, loading: appsLoading, refetch: refetchApps } = useApps({ onlyActive: false });
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -373,6 +379,57 @@ const AdminDashboard: React.FC = () => {
           </div>
         </motion.header>
 
+        {/* ── Tab Navigation ──────────────────────────────────── */}
+        <div style={{
+          display: 'flex', gap: '4px', marginBottom: '32px',
+          background: '#FFFFFF', borderRadius: '14px', padding: '4px',
+          border: '1px solid rgba(0,0,0,0.06)', width: 'fit-content',
+        }}>
+          {([
+            { key: 'users' as const, label: 'Utenti', icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )},
+            { key: 'apps' as const, label: 'App', icon: (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                <rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                <rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                <rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+              </svg>
+            )},
+          ]).map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                padding: '10px 20px', borderRadius: '10px',
+                border: 'none', cursor: 'pointer',
+                fontSize: '14px', fontWeight: 600,
+                fontFamily: 'var(--font-display)',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: activeTab === key ? '#3713ec' : 'transparent',
+                color: activeTab === key ? '#fff' : '#6E6E73',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Tab Content ─────────────────────────────────────── */}
+        {activeTab === 'apps' ? (
+          <AppManagementTab
+            apps={allApps}
+            loading={appsLoading}
+            onRefetch={refetchApps}
+          />
+        ) : (
+        <>
         {/* ── KPIs ───────────────────────────────────────────── */}
         <motion.div
           variants={stagger} initial="hidden" animate="show"
@@ -546,6 +603,8 @@ const AdminDashboard: React.FC = () => {
             </table>
           </div>
         </motion.div>
+        </>
+        )}
       </div>
 
       {/* ── User Detail Slide-over ──────────────────────────── */}

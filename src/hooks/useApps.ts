@@ -225,6 +225,7 @@ export function useApps(options: UseAppsOptions = {}) {
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refetchCount, setRefetchCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,7 +272,14 @@ export function useApps(options: UseAppsOptions = {}) {
 
     void fetchApps();
     return () => { cancelled = true; };
-  }, [onlyActive]);
+  }, [onlyActive, refetchCount]);
 
-  return { apps, loading, error };
+  const refetch = () => {
+    setLoading(true);
+    setError(null);
+    // Re-trigger by toggling a counter
+    setRefetchCount((c) => c + 1);
+  };
+
+  return { apps, loading, error, refetch };
 }

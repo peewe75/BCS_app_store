@@ -21,18 +21,17 @@ export interface ProductSectionProps {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
 };
 
-const fadeLeft = {
-  hidden: { opacity: 0, x: -30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 } },
-};
-
-const fadeRight = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 } },
-};
+const slideIn = (direction: 'left' | 'right') => ({
+  hidden: { opacity: 0, x: direction === 'left' ? -40 : 40 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 },
+  },
+});
 
 const ProductSection: React.FC<ProductSectionProps> = ({
   id,
@@ -54,28 +53,29 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 
   const textContent = (
     <motion.div
-      variants={isTextLeft ? fadeLeft : fadeRight}
+      variants={slideIn(isTextLeft ? 'left' : 'right')}
       style={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        gap: '24px',
+        gap: '28px',
       }}
     >
-      {/* Category chip */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+      {/* Category + Pricing chips */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <span
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            padding: '5px 14px',
+            padding: '6px 14px',
             borderRadius: '100px',
             fontSize: '12px',
             fontWeight: 600,
-            letterSpacing: '0.04em',
-            background: `${accentColor}18`,
+            fontFamily: 'var(--font-body)',
+            letterSpacing: '0.02em',
+            background: `${accentColor}12`,
             color: accentColor,
-            border: `1px solid ${accentColor}30`,
+            border: `1px solid ${accentColor}20`,
           }}
         >
           {category}
@@ -84,30 +84,31 @@ const ProductSection: React.FC<ProductSectionProps> = ({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            padding: '5px 14px',
+            padding: '6px 14px',
             borderRadius: '100px',
             fontSize: '12px',
             fontWeight: 600,
-            letterSpacing: '0.02em',
-            background: 'rgba(0,0,0,0.05)',
-            color: '#6E6E73',
-            border: '1px solid rgba(0,0,0,0.08)',
+            fontFamily: 'var(--font-body)',
+            letterSpacing: '0.01em',
+            background: 'rgba(0,0,0,0.03)',
+            color: '#888',
+            border: '1px solid rgba(0,0,0,0.06)',
           }}
         >
           {pricingBadge}
         </span>
       </div>
 
-      {/* App name */}
+      {/* App name + tagline */}
       <div>
         <h2
           style={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: 'clamp(32px, 4vw, 52px)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(28px, 3.5vw, 48px)',
             fontWeight: 800,
-            color: '#1D1D1F',
+            color: '#1a1a1a',
             lineHeight: 1.05,
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.04em',
             margin: 0,
           }}
         >
@@ -115,13 +116,13 @@ const ProductSection: React.FC<ProductSectionProps> = ({
         </h2>
         <p
           style={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: 'clamp(18px, 2vw, 22px)',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(16px, 1.8vw, 20px)',
             fontWeight: 400,
-            color: '#6E6E73',
+            color: '#777',
             lineHeight: 1.4,
-            marginTop: '12px',
-            margin: '12px 0 0',
+            margin: '10px 0 0',
+            letterSpacing: '-0.01em',
           }}
         >
           {tagline}
@@ -131,80 +132,86 @@ const ProductSection: React.FC<ProductSectionProps> = ({
       {/* Description */}
       <p
         style={{
-          fontFamily: '"Inter", sans-serif',
-          fontSize: '16px',
+          fontFamily: 'var(--font-body)',
+          fontSize: '15px',
           fontWeight: 400,
-          color: '#6E6E73',
-          lineHeight: 1.7,
+          color: '#666',
+          lineHeight: 1.75,
           margin: 0,
         }}
       >
         {description}
       </p>
 
-      {/* Features list */}
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {features.map((feature, i) => (
-          <li
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '15px',
-              fontWeight: 500,
-              color: '#1D1D1F',
-            }}
-          >
-            <span
+      {/* Features */}
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {features.map((feature, i) => {
+          const emoji = feature.split(' ')[0];
+          const text = feature.replace(/^\S+\s/, '');
+          return (
+            <li
+              key={i}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '8px',
-                background: `${accentColor}15`,
-                flexShrink: 0,
-                fontSize: '14px',
+                gap: '14px',
+                fontFamily: 'var(--font-body)',
+                fontSize: '14.5px',
+                fontWeight: 500,
+                color: '#333',
               }}
             >
-              {feature.split(' ')[0]}
-            </span>
-            <span>{feature.replace(/^\S+\s/, '')}</span>
-          </li>
-        ))}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: `${accentColor}0A`,
+                  border: `1px solid ${accentColor}15`,
+                  flexShrink: 0,
+                  fontSize: '15px',
+                }}
+              >
+                {emoji}
+              </span>
+              <span>{text}</span>
+            </li>
+          );
+        })}
       </ul>
 
       {/* CTA */}
-      <div style={{ paddingTop: '8px' }}>
+      <div style={{ paddingTop: '4px' }}>
         <a
           href={ctaHref}
           target="_blank"
           rel="noopener noreferrer"
+          className="bcs-cta-primary"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '14px 28px',
+            padding: '14px 30px',
             borderRadius: '100px',
             background: accentColor,
             color: '#FFFFFF',
-            fontFamily: '"Inter", sans-serif',
+            fontFamily: 'var(--font-display)',
             fontSize: '15px',
             fontWeight: 600,
             textDecoration: 'none',
-            transition: 'opacity 0.2s ease, transform 0.2s ease',
             letterSpacing: '-0.01em',
+            boxShadow: `0 2px 16px ${accentColor}30`,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85';
-            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
+            (e.currentTarget).style.transform = 'translateY(-2px)';
+            (e.currentTarget).style.boxShadow = `0 6px 24px ${accentColor}40`;
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
-            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+            (e.currentTarget).style.transform = 'translateY(0)';
+            (e.currentTarget).style.boxShadow = `0 2px 16px ${accentColor}30`;
           }}
         >
           {ctaText}
@@ -218,35 +225,37 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 
   const videoContent = (
     <motion.div
-      variants={isTextLeft ? fadeRight : fadeLeft}
+      variants={slideIn(isTextLeft ? 'right' : 'left')}
       style={{ display: 'flex', alignItems: 'center' }}
     >
-      <VideoPlaceholder
-        videoSrc={videoSrc}
-        posterSrc={posterSrc}
-        accentColor={accentColor}
-        title={`Demo ${name}`}
-      />
+      <div className="bcs-video-frame" style={{ width: '100%' }}>
+        <VideoPlaceholder
+          videoSrc={videoSrc}
+          posterSrc={posterSrc}
+          accentColor={accentColor}
+          title={`Demo ${name}`}
+        />
+      </div>
     </motion.div>
   );
 
   return (
     <section
       id={id}
-      style={{ background: bgColor, padding: '100px 0' }}
+      style={{ background: bgColor, padding: '80px 0' }}
     >
       <motion.div
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={fadeUp}
+        className="bcs-product-grid"
         style={{
           maxWidth: '1200px',
           margin: '0 auto',
           padding: '0 24px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '64px',
+          gap: '56px',
           alignItems: 'center',
         }}
       >
