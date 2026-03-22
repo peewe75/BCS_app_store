@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import { getPublicAppById, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
-import ForfApp from '@/src/pages/ForfApp';
-import RavvedimentoApp from '@/src/pages/RavvedimentoApp';
+import ForfApp from '@/src/features/ForfApp';
+import RavvedimentoApp from '@/src/features/RavvedimentoApp';
 import TradingWorkspace from '@/src/components/apps/TradingWorkspace';
 import UgcWorkspace from '@/src/components/apps/UgcWorkspace';
 

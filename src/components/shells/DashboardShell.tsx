@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 const DashboardContent = dynamic(
   () =>
     import('@/src/components/auth/RequireAuth').then(({ RequireAuth }) =>
-      import('@/src/pages/UserDashboard').then(({ default: UserDashboard }) => () => (
+      import('@/src/features/UserDashboard').then(({ default: UserDashboard }) => () => (
         <RequireAuth>
           <UserDashboard />
         </RequireAuth>
