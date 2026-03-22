@@ -2,31 +2,34 @@
   "name": "bcs-ai-suite",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.4",
+    "@clerk/nextjs": "^6.22.0",
     "@google/genai": "^1.40.0",
+    "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.99.3",
-    "@tailwindcss/vite": "^4.1.18",
+    "date-fns": "^4.1.0",
     "firebase": "^12.9.0",
     "framer-motion": "^12.34.0",
+    "next": "^15.5.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0"
+    "stripe": "^18.5.0",
+    "svix": "^1.67.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@types/react": "19.2.14",
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "typescript": "~5.8.2"
   }
 }

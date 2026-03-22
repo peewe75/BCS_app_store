@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { SignUp } from '@clerk/clerk-react';
+import { SignUp } from '@clerk/nextjs';
 import Logo from '../components/Logo';
 
 const Signup: React.FC = () => {
@@ -35,8 +37,8 @@ const Signup: React.FC = () => {
       {/* Clerk SignUp component */}
       <SignUp
         routing="path"
-        path="/signup"
-        fallbackRedirectUrl="/dashboard"
+        path="/sign-up"
+        forceRedirectUrl="/dashboard"
         appearance={{
           variables: {
             colorPrimary: '#3713ec',

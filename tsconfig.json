@@ -1,29 +1,55 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
+    "target": "ES2017",
     "lib": [
-      "ES2022",
       "DOM",
-      "DOM.Iterable"
+      "DOM.Iterable",
+      "ES2022"
     ],
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
     "allowJs": true,
-    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": [
         "./*"
       ]
     },
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "strictNullChecks": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/apps/**/*.ts",
+    "src/apps/**/*.tsx",
+    "src/components/Logo.tsx",
+    "src/components/admin/AdminConsole.tsx",
+    "src/components/auth/**/*.tsx",
+    "src/components/apps/**/*.tsx",
+    "src/components/site/**/*.tsx",
+    "src/components/shells/**/*.tsx",
+    "src/lib/**/*.ts",
+    "src/pages/Login.tsx",
+    "src/pages/Signup.tsx",
+    "src/pages/UserDashboard.tsx",
+    "src/pages/ForfApp.tsx",
+    "src/pages/RavvedimentoApp.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

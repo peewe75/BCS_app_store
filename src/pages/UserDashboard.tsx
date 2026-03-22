@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useSession, useUser } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom';
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import { createClerkSupabaseClient, supabase as publicSupabase } from '../lib/supabase';
+import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
+import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -12,56 +15,12 @@ const stagger = {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+  },
 };
-
-type AppRow = {
-  id: string;
-  name: string;
-  tagline: string | null;
-  description: string | null;
-  badge: string | null;
-  accent_color: string | null;
-  bg_color: string | null;
-  bg_gradient: string | null;
-  pricing_badge: string | null;
-  pricing_model: string | null;
-  price_label: string | null;
-  cta_text: string | null;
-  cta_href: string | null;
-  is_internal: boolean | null;
-  internal_route: string | null;
-  sort_order: number | null;
-  is_active: boolean | null;
-  is_coming_soon: boolean | null;
-};
-
-type UserAppRow = {
-  app_id: string;
-  plan: string | null;
-  expires_at: string | null;
-};
-
-const APP_COLUMNS = `
-  id,
-  name,
-  tagline,
-  description,
-  badge,
-  accent_color,
-  bg_color,
-  bg_gradient,
-  pricing_badge,
-  pricing_model,
-  price_label,
-  cta_text,
-  cta_href,
-  is_internal,
-  internal_route,
-  sort_order,
-  is_active,
-  is_coming_soon
-`;
 
 function getInitials(firstName?: string | null, lastName?: string | null, email?: string | null): string {
   if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -75,70 +34,37 @@ function formatDate(date?: Date | null): string {
   return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function getAppIcon(appId: string) {
-  switch (appId) {
-    case 'ugc':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.259a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'ai-crisi':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7l-9-5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'trading':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M3 3v18h18M7 16l4-4 4 4 4-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'ravvedimento':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3M13 3h8m0 0v8m0-8L11 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'forf':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2zm3 4h4m-4 4h4m-4 4h2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'bot':
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M9 3h6M12 3v3M7 9h10a3 3 0 013 3v4a3 3 0 01-3 3H7a3 3 0 01-3-3v-4a3 3 0 013-3zm2 5h.01M15 14h.01M8 21l2-2M16 21l-2-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    default:
-      return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M4 7.5A2.5 2.5 0 016.5 5h11A2.5 2.5 0 0120 7.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 16.5v-9zM8 10h8M8 14h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
+function getAppHref(app: AppRecord) {
+  if (app.is_internal) {
+    return app.internal_route ?? `/apps/${app.id}`;
   }
+
+  return app.cta_href ?? '#';
 }
 
-const UserDashboard: React.FC = () => {
+export default function UserDashboard() {
+  const router = useRouter();
+  const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const { user } = useUser();
-  const { session } = useSession();
-  const { isAdmin, logout } = useAuth();
-  const navigate = useNavigate();
-  const [apps, setApps] = useState<AppRow[]>([]);
-  const [userApps, setUserApps] = useState<UserAppRow[]>([]);
+  const [apps, setApps] = useState<AppRecord[]>([]);
+  const [userApps, setUserApps] = useState<UserAppGrant[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const initials = getInitials(user?.firstName, user?.lastName, user?.primaryEmailAddress?.emailAddress);
   const displayName = user?.firstName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Utente';
   const memberSince = formatDate(user?.createdAt);
-  const unlockedApps = userApps.reduce<Record<string, UserAppRow>>((accumulator, currentApp) => {
-    accumulator[currentApp.app_id] = currentApp;
-    return accumulator;
-  }, {});
+  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin';
+
+  const unlockedApps = useMemo(
+    () =>
+      userApps.reduce<Record<string, UserAppGrant>>((accumulator, currentApp) => {
+        accumulator[currentApp.app_id] = currentApp;
+        return accumulator;
+      }, {}),
+    [userApps],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -148,7 +74,7 @@ const UserDashboard: React.FC = () => {
         if (isMounted) {
           setApps([]);
           setUserApps([]);
-          setLoadError('Configura VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY per caricare il catalogo.');
+          setLoadError('Configura NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY per caricare il catalogo.');
           setIsLoadingApps(false);
         }
         return;
@@ -157,22 +83,20 @@ const UserDashboard: React.FC = () => {
       setIsLoadingApps(true);
       setLoadError(null);
 
-      const client = session
-        ? createClerkSupabaseClient(() => session.getToken()) ?? publicSupabase
-        : publicSupabase;
+      const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase;
 
       const appsPromise = client
         .from('apps')
-        .select(APP_COLUMNS)
+        .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
       const userAppsPromise = user?.id
         ? client
-          .from('user_apps')
-          .select('app_id, plan, expires_at')
-          .eq('user_id', user.id)
-        : Promise.resolve({ data: [] as UserAppRow[], error: null });
+            .from('user_apps')
+            .select('app_id, plan, expires_at')
+            .eq('user_id', user.id)
+        : Promise.resolve({ data: [] as UserAppGrant[], error: null });
 
       const [appsResult, userAppsResult] = await Promise.all([appsPromise, userAppsPromise]);
 
@@ -185,8 +109,8 @@ const UserDashboard: React.FC = () => {
         setUserApps([]);
         setLoadError('Non sono riuscito a leggere il catalogo apps da Supabase.');
       } else {
-        setApps((appsResult.data as AppRow[] | null) ?? []);
-        setUserApps((userAppsResult.data as UserAppRow[] | null) ?? []);
+        setApps((appsResult.data as AppRecord[] | null) ?? []);
+        setUserApps((userAppsResult.data as UserAppGrant[] | null) ?? []);
 
         if (userAppsResult.error) {
           console.error('Failed to load user_apps', userAppsResult.error);
@@ -201,26 +125,20 @@ const UserDashboard: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [session, user?.id]);
+  }, [getToken, user?.id]);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    await signOut({ redirectUrl: '/' });
   };
 
-  const handleOpenApp = (app: AppRow) => {
-    if (app.is_coming_soon) {
+  const handleOpenApp = (app: AppRecord) => {
+    const href = getAppHref(app);
+    if (app.is_internal) {
+      router.push(href);
       return;
     }
 
-    if (app.is_internal && app.internal_route) {
-      navigate(app.internal_route);
-      return;
-    }
-
-    if (app.cta_href) {
-      window.open(app.cta_href, '_blank', 'noopener,noreferrer');
-    }
+    window.open(href, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -228,8 +146,6 @@ const UserDashboard: React.FC = () => {
       style={{
         minHeight: '100vh',
         background: '#F5F5F7',
-        paddingTop: '80px',
-        fontFamily: '"Inter", system-ui, sans-serif',
       }}
     >
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '48px 24px 80px' }}>
@@ -285,8 +201,8 @@ const UserDashboard: React.FC = () => {
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {isAdmin && (
-              <button
-                onClick={() => navigate('/admin')}
+              <Link
+                href="/admin"
                 style={{
                   padding: '10px 20px',
                   borderRadius: '100px',
@@ -295,18 +211,11 @@ const UserDashboard: React.FC = () => {
                   border: 'none',
                   fontWeight: 600,
                   fontSize: '14px',
-                  cursor: 'pointer',
-                  fontFamily: '"Inter", sans-serif',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
+                  textDecoration: 'none',
                 }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2a5 5 0 015 5v2a5 5 0 01-10 0V7a5 5 0 015-5zM2 20a10 10 0 0120 0" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                </svg>
                 Admin
-              </button>
+              </Link>
             )}
             <button
               onClick={handleLogout}
@@ -319,7 +228,6 @@ const UserDashboard: React.FC = () => {
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
-                fontFamily: '"Inter", sans-serif',
               }}
             >
               Esci
@@ -341,8 +249,8 @@ const UserDashboard: React.FC = () => {
           {[
             {
               label: 'Piano attivo',
-              value: isAdmin ? 'Admin' : 'Free',
-              sub: isAdmin ? 'Accesso illimitato' : 'Aggiorna per piu funzioni',
+              value: isAdmin ? 'Admin' : 'User',
+              sub: isAdmin ? 'Accesso completo' : 'Autenticazione Clerk unificata',
               color: isAdmin ? '#3713ec' : '#10b981',
             },
             {
@@ -388,17 +296,11 @@ const UserDashboard: React.FC = () => {
         </motion.div>
 
         <div style={{ marginBottom: '32px' }}>
-          <h2 style={{
-            fontSize: '28px',
-            fontWeight: 800,
-            color: '#1D1D1F',
-            margin: '0 0 6px',
-            letterSpacing: '-0.02em',
-          }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1D1D1F', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
             Le tue app
           </h2>
           <p style={{ fontSize: '15px', color: '#6E6E73', margin: '0 0 28px', fontWeight: 400 }}>
-            Catalogo letto da Supabase. Gli accessi personali arrivano da Clerk tramite RLS.
+            Catalogo letto da Supabase. Gli accessi personali arrivano da Clerk tramite RLS e Stripe aggiorna `user_apps`.
           </p>
         </div>
 
@@ -444,119 +346,101 @@ const UserDashboard: React.FC = () => {
             </motion.div>
           )}
 
-          {!isLoadingApps && !loadError && apps.map((app) => {
-            const accentColor = app.accent_color ?? '#3713ec';
-            const badge = app.is_coming_soon ? 'Prossimamente' : (app.badge ?? app.pricing_badge ?? 'BCS AI');
-            const secondaryLabel = unlockedApps[app.id]?.plan
-              ? `Piano ${unlockedApps[app.id].plan}`
-              : (app.price_label ?? app.pricing_badge ?? 'Disponibile');
+          {!isLoadingApps &&
+            !loadError &&
+            apps.map((app) => {
+              const accentColor = app.accent_color ?? '#3713ec';
+              const isUnlocked =
+                isAdmin ||
+                app.pricing_model === 'free' ||
+                app.id === 'forf' ||
+                Boolean(unlockedApps[app.id]);
+              const badge = app.is_coming_soon
+                ? 'Prossimamente'
+                : isUnlocked
+                  ? 'Accesso attivo'
+                  : app.badge ?? app.pricing_badge ?? 'BCS AI';
+              const secondaryLabel = unlockedApps[app.id]?.plan
+                ? `Piano ${unlockedApps[app.id].plan}`
+                : isUnlocked
+                  ? app.price_label ?? app.pricing_badge ?? 'Disponibile'
+                  : 'Richiede acquisto o grant';
 
-            return (
-              <motion.button
-                key={app.id}
-                type="button"
-                variants={fadeUp}
-                onClick={() => handleOpenApp(app)}
-                whileHover={app.is_coming_soon ? undefined : { y: -4, boxShadow: `0 20px 48px ${accentColor}22` }}
-                whileTap={app.is_coming_soon ? undefined : { scale: 0.98 }}
-                style={{
-                  background: '#FFFFFF',
-                  borderRadius: '24px',
-                  padding: '32px',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px',
-                  cursor: app.is_coming_soon ? 'default' : 'pointer',
-                  transition: 'box-shadow 0.3s ease',
-                  textAlign: 'left',
-                  opacity: app.is_coming_soon ? 0.72 : 1,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                  <div
-                    style={{
-                      width: '52px',
-                      height: '52px',
-                      borderRadius: '14px',
-                      background: app.bg_gradient || app.bg_color || '#F5F5F7',
-                      color: accentColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {getAppIcon(app.id)}
+              return (
+                <motion.button
+                  key={app.id}
+                  type="button"
+                  variants={fadeUp}
+                  onClick={() => handleOpenApp(app)}
+                  whileHover={app.is_coming_soon ? undefined : { y: -4, boxShadow: `0 20px 48px ${accentColor}22` }}
+                  whileTap={app.is_coming_soon ? undefined : { scale: 0.98 }}
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '24px',
+                    padding: '32px',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                    cursor: app.is_coming_soon ? 'default' : 'pointer',
+                    transition: 'box-shadow 0.3s ease',
+                    textAlign: 'left',
+                    opacity: app.is_coming_soon ? 0.72 : 1,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '14px',
+                        background: app.bg_gradient || app.bg_color || '#F5F5F7',
+                        color: accentColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {app.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        padding: '4px 12px',
+                        borderRadius: '100px',
+                        background: `${accentColor}15`,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}25`,
+                      }}
+                    >
+                      {badge}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      padding: '4px 12px',
-                      borderRadius: '100px',
-                      background: `${accentColor}15`,
-                      color: accentColor,
-                      border: `1px solid ${accentColor}25`,
-                    }}
-                  >
-                    {badge}
-                  </span>
-                </div>
 
-                <div>
-                  <h3 style={{
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: '#1D1D1F',
-                    margin: '0 0 8px',
-                    letterSpacing: '-0.02em',
-                  }}>
-                    {app.name}
-                  </h3>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#6E6E73',
-                    margin: '0 0 10px',
-                    lineHeight: 1.5,
-                    fontWeight: 400,
-                  }}>
-                    {app.tagline || app.description || 'Catalogo sincronizzato da Supabase.'}
-                  </p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: accentColor,
-                    margin: 0,
-                    fontWeight: 600,
-                  }}>
-                    {secondaryLabel}
-                  </p>
-                </div>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1D1D1F', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                      {app.name}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#6E6E73', margin: '0 0 10px', lineHeight: 1.5, fontWeight: 400 }}>
+                      {app.tagline || app.description || 'Catalogo sincronizzato da Supabase.'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: accentColor, margin: 0, fontWeight: 600 }}>
+                      {secondaryLabel}
+                    </p>
+                  </div>
 
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: accentColor,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  marginTop: 'auto',
-                }}>
-                  {app.is_coming_soon ? (app.cta_text || 'In arrivo') : (app.cta_text || 'Apri app')}
-                  {!app.is_coming_soon && (
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-              </motion.button>
-            );
-          })}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: accentColor, fontSize: '14px', fontWeight: 600, marginTop: 'auto' }}>
+                    {app.is_coming_soon ? 'In arrivo' : app.is_internal ? 'Apri workspace' : 'Apri app esterna'}
+                  </div>
+                </motion.button>
+              );
+            })}
         </motion.div>
       </div>
     </div>
   );
-};
-
-export default UserDashboard;
+}
