@@ -13,7 +13,7 @@ export const publicSupabase =
     ? createClient(env.supabaseUrl, env.supabaseAnonKey, supabaseOptions)
     : null;
 
-type ClerkGetToken = (options?: { template?: string }) => Promise<string | null>;
+type ClerkGetToken = () => Promise<string | null>;
 
 export function createClerkSupabaseBrowserClient(
   getToken: ClerkGetToken,
@@ -24,7 +24,7 @@ export function createClerkSupabaseBrowserClient(
 
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
     ...supabaseOptions,
-    // Supabase must receive the Clerk JWT minted for the `supabase` template.
-    accessToken: async () => getToken({ template: 'supabase' }),
+    // With the native Clerk integration enabled, Supabase accepts the default Clerk session token.
+    accessToken: async () => getToken(),
   });
 }
