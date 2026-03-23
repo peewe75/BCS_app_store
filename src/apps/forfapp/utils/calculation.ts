@@ -1,5 +1,4 @@
 import { SocialManagementType, CalculatorFormData, ProfessionalFund } from '../types';
-import { CONFIG } from '../constants';
 
 export interface AtecoSuggestion {
   code: string;
@@ -98,45 +97,19 @@ export function formatCurrency(value: number): string {
 }
 
 export async function findAtecoCodes(activityDescription: string): Promise<AtecoSuggestion[]> {
-  const apiKey = CONFIG.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("API key non configurata");
-  }
-
-  const prompt = `Sei un esperto di codici ATECO italiani. 
-Analizza questa descrizione di attività: "${activityDescription}"
-Restituisci i 3 codici ATECO più pertinenti in formato JSON array.
-Per ogni codice indica: code (es. 62.01), description (descrizione completa), coeff (coefficiente di redditività come decimal es 0.78).
-Rispondi SOLO con array JSON, nient'altro.`;
-
-  console.log("Calling Gemini API with model: gemini-2.0-flash");
-  console.log("Using API Key (first 10 chars):", apiKey.substring(0, 10));
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000,
-        }
-      })
-    }
-  );
+  const response = await fetch('/api/forfapp/ateco', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ activityDescription }),
+  });
 
   if (!response.ok) {
-    throw new Error("Errore nella chiamata AI");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Errore nella ricerca AI');
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!data.suggestions) throw new Error('Risposta AI non valida');
 
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error("Risposta AI non valida");
-
-  return JSON.parse(jsonMatch[0]);
+  return data.suggestions;
 }

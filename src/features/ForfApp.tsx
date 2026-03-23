@@ -7,7 +7,7 @@ import { CalculationResult } from '../apps/forfapp/utils/calculation';
 import { CalculatorFormData } from '../apps/forfapp/types';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createClerkSupabaseBrowserClient } from '@/src/lib/supabase/public';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Zap, Receipt, BarChart3 } from 'lucide-react';
 
 const ForfApp: React.FC = () => {
   const [view, setView] = useState<'landing' | 'result'>('landing');
@@ -22,13 +22,12 @@ const ForfApp: React.FC = () => {
     setView('result');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Save calculation to Supabase
     if (user) {
       setIsSaving(true);
       try {
         const supabase = createClerkSupabaseBrowserClient(getToken);
         if (!supabase) {
-          console.error("Supabase client is null");
+          console.error('Supabase client is null');
           return;
         }
         const { error } = await supabase.from('forfapp_calculations').insert({
@@ -40,12 +39,12 @@ const ForfApp: React.FC = () => {
           risultato_imposte: result.imposta,
           risultato_inps: result.contributi,
         });
-        
+
         if (error) {
-          console.error("Error saving calculation:", error);
+          console.error('Error saving calculation:', error);
         }
       } catch (err) {
-        console.error("Exception saving calculation:", err);
+        console.error('Exception saving calculation:', err);
       } finally {
         setIsSaving(false);
       }
@@ -58,6 +57,24 @@ const ForfApp: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const features = [
+    {
+      icon: <Zap className="w-6 h-6 text-amber-500" />,
+      title: 'Calcolo Real-time',
+      desc: 'Incasso, imposta sostitutiva, contributi INPS (Gestione Separata, Artigiani o Cassa Professionale) e netto calcolati istantaneamente.',
+    },
+    {
+      icon: <Receipt className="w-6 h-6 text-blue-500" />,
+      title: 'Ricerca ATECO con AI',
+      desc: "Non sai il tuo ATECO? Descrivi la tua attività e l'AI di Gemini suggerisce automaticamente il codice e il coefficiente di redditività.",
+    },
+    {
+      icon: <BarChart3 className="w-6 h-6 text-emerald-500" />,
+      title: 'Storico Simulazioni',
+      desc: 'Tutte le tue simulazioni vengono salvate in automatico nel tuo profilo per confrontare diversi scenari di fatturato.',
+    },
+  ];
+
   return (
     <div className="w-full">
       <AnimatePresence mode="wait">
@@ -69,80 +86,106 @@ const ForfApp: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {/* --- Landing Page Section --- */}
-            <section className="pt-32 pb-20 px-6 bg-slate-50 dark:bg-[#181A20] border-b border-slate-200 dark:border-white/5">
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+            {/* --- Hero Section --- */}
+            <section className="pt-20 pb-16 px-6 bg-gradient-to-br from-amber-50 via-white to-slate-50 dark:from-[#1a1800] dark:via-[#181A20] dark:to-[#181A20] border-b border-slate-200 dark:border-white/5">
+              <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
                 <div className="md:w-1/2 text-center md:text-left">
-                  <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold tracking-wide uppercase inline-block mb-6">
-                    Strumento Fiscale Gratuito
+                  <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide uppercase inline-block mb-5">
+                    🧾 Strumento Fiscale Gratuito
                   </span>
-                  <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 dark:text-white mb-6 leading-tight">
+                  <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 dark:text-white mb-5 leading-tight">
                     Calcolo Tasse <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Regime Forfettario</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-400">
+                      Forfettario
+                    </span>
                   </h1>
-                  <p className="text-xl text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    Dimentica i fogli Excel complicati. ForfApp è il simulatore definitivo per Partite IVA in Italia.
-                    Calcola imposta sostitutiva, saldo INPS e netto in tempo reale.
+                  <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                    Dimentica i fogli Excel complicati. Calcola imposta sostitutiva, contributi INPS
+                    e netto annuo in pochi secondi, con supporto AI per trovare il codice ATECO.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start mb-6">
                     <button
-                      onClick={() => document.getElementById('app-dashboard')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl hover:shadow-primary/30 transition-all"
-                      aria-label="Vai al calcolatore tasse"
+                      onClick={() => document.getElementById('app-calculator')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all"
                     >
                       Nuova Simulazione
                     </button>
-                    <button className="flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-slate-700 dark:text-white border border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-                      <span className="material-icons text-emerald-500" aria-hidden="true">check_circle</span>
+                    <div className="flex items-center justify-center gap-2 px-6 py-4 rounded-full font-semibold text-slate-600 dark:text-white border border-slate-300 dark:border-white/20">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                       Aggiornato 2024/25
-                    </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 dark:text-slate-400 justify-center md:justify-start">
+                    {['✓ Stima gratuita', '✓ Tutte le Casse Professionali', '✓ AI per codice ATECO', '✓ Esporta PDF'].map(t => (
+                      <span key={t}>{t}</span>
+                    ))}
                   </div>
                 </div>
 
                 <div className="md:w-1/2 relative">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-primary/30 to-emerald-500/30 blur-3xl rounded-full opacity-30"></div>
-                  <img
-                    src="https://picsum.photos/seed/finance/800/600"
-                    alt="Anteprima Dashboard ForfApp per calcolo tasse partita IVA"
-                    loading="lazy"
-                    className="relative rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10"
-                  />
+                  <div className="absolute -inset-4 bg-gradient-to-r from-amber-400/20 to-orange-400/20 blur-3xl rounded-full opacity-60" />
+                  <div className="relative bg-white dark:bg-[#1E2026] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Anteprima Risultato</span>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">Es. €45.000</span>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Incasso Annuo', value: '€ 45.000', color: 'text-slate-700 dark:text-slate-200' },
+                        { label: 'Imposta Sostitutiva (15%)', value: '− € 5.265', color: 'text-red-500' },
+                        { label: 'Contributi INPS', value: '− € 9.157', color: 'text-red-500' },
+                        { label: 'Netto Annuo Stimato', value: '€ 30.578', color: 'text-emerald-600 font-extrabold text-lg' },
+                      ].map((row) => (
+                        <div key={row.label} className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-white/5 last:border-none">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">{row.label}</span>
+                          <span className={`text-sm ${row.color}`}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-xs text-center text-slate-400">
+                      * Stima indicativa basata su ATECO 78% e Gestione Separata INPS
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* --- Features Grid --- */}
-            <section className="py-20 px-6 max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                  { icon: 'calculate', title: 'Calcolo Real-time', desc: 'Inserisci il fatturato annuo e vedi istantaneamente tasse e contributi INPS Gestione Separata o Casse Private.' },
-                  { icon: 'receipt_long', title: 'Ricerca ATECO Intelligente', desc: 'Non sai il tuo ATECO? Usa la ricerca semantica basata su AI per trovare il codice esatto per la tua attività.' },
-                  { icon: 'calendar_today', title: 'Dashboard Personale', desc: 'Tutte le tue simulazioni salvate in un unico posto per comparare diversi scenari di fatturato nel tempo.' }
-                ].map((f, i) => (
-                  <div key={i} className="p-8 rounded-2xl bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark shadow-sm dark:shadow-none">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
-                      <span className="material-icons text-primary text-2xl" aria-hidden="true">{f.icon}</span>
+            <section className="py-16 px-6">
+              <div className="max-w-5xl mx-auto">
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Tutto quello che ti serve per capire le tue tasse
+                  </h2>
+                  <p className="text-slate-500 dark:text-slate-400">
+                    Un solo strumento, tutte le risposte fiscali che ti servono.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {features.map((f, i) => (
+                    <div key={i} className="p-7 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm">
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-white/10 rounded-xl flex items-center justify-center mb-5">
+                        {f.icon}
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{f.title}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{f.desc}</p>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{f.title}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{f.desc}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
 
-            {/* --- The Application (Dashboard) --- */}
-            <section id="app-dashboard" className="py-20 px-6 bg-slate-100 dark:bg-[#15171C] border-t border-slate-200 dark:border-white/5">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-3">
-                    <span className="material-icons text-primary" aria-hidden="true">dashboard</span>
+            {/* --- The Calculator --- */}
+            <section id="app-calculator" className="py-16 px-6 bg-slate-100 dark:bg-[#15171C] border-t border-slate-200 dark:border-white/5">
+              <div className="max-w-3xl mx-auto">
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                     Simulatore Forfettario
                   </h2>
-                  <p className="text-slate-500 dark:text-slate-400 mt-2">
-                    Inserisci i tuoi dati fiscali per una stima immediata e precisa.
+                  <p className="text-slate-500 dark:text-slate-400">
+                    Inserisci i tuoi dati fiscali e ottieni la stima in tempo reale.
                   </p>
                 </div>
-
                 <Calculator onCalculationComplete={handleCalculationComplete} />
               </div>
             </section>
@@ -150,9 +193,9 @@ const ForfApp: React.FC = () => {
         ) : (
           <motion.div
             key="result"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.3 }}
             className="py-12 px-6 min-h-[80vh] bg-slate-50 dark:bg-[#181A20]"
           >
@@ -161,16 +204,17 @@ const ForfApp: React.FC = () => {
                 onClick={handleRecalculate}
                 className="flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-8 transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors mr-3">
+                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors mr-3">
                   <ArrowLeft className="w-5 h-5" />
                 </div>
-                <span className="font-semibold">Torna alla Dashboard</span>
+                <span className="font-semibold">Nuova Simulazione</span>
               </button>
-              
+
               {resultData && <ResultView data={resultData} onReset={handleRecalculate} />}
+
               {isSaving && (
-                <div className="text-center mt-4 text-sm text-slate-500">
-                  <p>Salvataggio della simulazione in corso...</p>
+                <div className="text-center mt-4 text-sm text-slate-400 animate-pulse">
+                  Salvataggio simulazione in corso...
                 </div>
               )}
             </div>
