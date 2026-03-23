@@ -11,7 +11,7 @@ import TradingWorkspace from '@/src/components/apps/TradingWorkspace';
 import UgcWorkspace from '@/src/components/apps/UgcWorkspace';
 
 const INTERNAL_COMPONENTS: Record<string, React.ComponentType> = {
-  forf: ForfApp,
+  forfettari: ForfApp,
   ravvedimento: RavvedimentoApp,
   trading: TradingWorkspace,
   ugc: UgcWorkspace,

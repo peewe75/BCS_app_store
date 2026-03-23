@@ -118,7 +118,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
   const [yearMessage, setYearMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [reportId, setReportId] = useState<string | null>(null)
-  const [progress, setProgress] = useState(8)
+  const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<ReportStatusResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -341,7 +341,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
             <div>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>Stato elaborazione</p>
               <p style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-display)', color: '#0f172a' }}>
-                {status?.status === 'ready' ? 'Completato' : status?.status === 'error' ? 'Interrotto' : 'In esecuzione'}
+                {!status ? 'In attesa' : status.status === 'ready' ? 'Completato' : status.status === 'error' ? 'Interrotto' : 'In esecuzione'}
               </p>
             </div>
             <div style={{
