@@ -46,7 +46,7 @@ export const generateAppImage = async (prompt: string): Promise<string> => {
       },
     });
     
-    for (const part of response.candidates?.[0]?.content.parts || []) {
+    for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;
       }

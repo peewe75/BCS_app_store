@@ -1,128 +1,124 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
+import { useState, useCallback } from 'react'
+import { useAuth, useUser } from '@clerk/nextjs'
+import { getAllowedYears } from '@/src/apps/trading/plans'
+import { UploadClient } from '@/src/components/apps/trading/UploadClient'
+import { ReportsTable } from '@/src/components/apps/trading/ReportsTable'
+import { TaxFormClient } from '@/src/components/apps/trading/TaxFormClient'
+import type { Plan } from '@/src/apps/trading/types'
 
-type TradingReport = {
-  id: string;
-  broker_name: string | null;
-  tax_year: number | null;
-  pnl_total: number | null;
-  tax_due: number | null;
-  report_pdf_url: string | null;
-  created_at: string;
-};
+type Tab = 'upload' | 'reports' | 'tax-form'
 
 export default function TradingWorkspace() {
-  const { getToken, userId } = useAuth();
-  const [reports, setReports] = useState<TradingReport[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { userId } = useAuth()
+  const { user } = useUser()
+  const [activeTab, setActiveTab] = useState<Tab>('upload')
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
+  const [highlightId, setHighlightId] = useState<string | undefined>(undefined)
 
-  useEffect(() => {
-    let cancelled = false;
+  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin'
+  // For admin, default to 'pro' plan. For regular users, we'll use 'base' as default
+  // (the actual plan enforcement happens server-side in the API routes)
+  const plan: Plan = isAdmin ? 'pro' : 'base'
+  const allowedYears = getAllowedYears(plan)
 
-    const load = async () => {
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
+  const handleReportReady = useCallback((reportId: string) => {
+    setHighlightId(reportId)
+    setActiveTab('reports')
+  }, [])
 
-      const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase;
-      if (!client) {
-        setLoading(false);
-        return;
-      }
+  const handleSelectTaxForm = useCallback((reportId: string) => {
+    setSelectedReportId(reportId)
+    setActiveTab('tax-form')
+  }, [])
 
-      const { data } = await client
-        .from('trading_reports')
-        .select('id, broker_name, tax_year, pnl_total, tax_due, report_pdf_url, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+  const handleBackToReports = useCallback(() => {
+    setSelectedReportId(null)
+    setActiveTab('reports')
+  }, [])
 
-      if (!cancelled) {
-        setReports((data as TradingReport[] | null) ?? []);
-        setLoading(false);
-      }
-    };
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken, userId]);
+  const accent = '#10b981'
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'upload', label: 'Upload' },
+    { key: 'reports', label: 'Report' },
+    { key: 'tax-form', label: 'Modulo Fiscale' },
+  ]
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
+      {/* Header */}
       <section style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-        <p style={{ margin: '0 0 8px', color: '#10b981', fontWeight: 700 }}>Trading Fiscale</p>
-        <h1 style={{ margin: '0 0 10px', fontSize: 34 }}>Workspace unificato</h1>
+        <p style={{ margin: '0 0 8px', color: accent, fontWeight: 700, textTransform: 'uppercase', fontSize: 12, letterSpacing: '0.06em' }}>Trading Fiscale</p>
+        <h1 style={{ margin: '0 0 10px', fontSize: 34, fontFamily: 'var(--font-display)' }}>Report fiscale automatico</h1>
         <p style={{ margin: 0, color: '#6E6E73', lineHeight: 1.6 }}>
-          La parte operativa ora vive dentro Ultrabot Space. Lo storage dati e gli accessi restano su Supabase e Clerk.
+          Carica il report HTML MetaTrader 4/5 del tuo broker, analizza plusvalenze e minusvalenze, genera PDF fiscale e facsimile RW/RT.
         </p>
       </section>
 
-      <section style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-          <div>
-            <h2 style={{ margin: '0 0 4px', fontSize: 22 }}>Storico report</h2>
-            <p style={{ margin: 0, color: '#6E6E73' }}>Dati letti da `trading_reports` via RLS.</p>
-          </div>
-          <div
+      {/* Tab navigation */}
+      <div style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: 4, borderRadius: 100 }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
             style={{
-              padding: '10px 14px',
-              borderRadius: 16,
-              background: '#F0FDF4',
-              color: '#166534',
+              flex: 1,
+              padding: '10px 20px',
+              borderRadius: 100,
+              border: 'none',
+              background: activeTab === tab.key ? '#fff' : 'transparent',
+              color: activeTab === tab.key ? '#0f172a' : '#64748b',
               fontWeight: 700,
-              height: 'fit-content',
+              fontSize: 13,
+              cursor: 'pointer',
+              boxShadow: activeTab === tab.key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.2s',
             }}
           >
-            {loading ? 'Sincronizzo...' : `${reports.length} report`}
-          </div>
-        </div>
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {reports.length === 0 ? (
-          <div style={{ padding: 20, borderRadius: 18, background: '#F8FAFC', color: '#475569' }}>
-            Nessun report ancora salvato. Il modulo di importazione broker verra integrato in questo repository nel prossimo step.
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {reports.map((report) => (
-              <article
-                key={report.id}
-                style={{
-                  padding: 18,
-                  borderRadius: 18,
-                  background: '#F8FAFC',
-                  border: '1px solid rgba(0,0,0,0.05)',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 12, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Broker</div>
-                  <div style={{ fontWeight: 700 }}>{report.broker_name ?? 'N/D'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Anno</div>
-                  <div style={{ fontWeight: 700 }}>{report.tax_year ?? 'N/D'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>P&L</div>
-                  <div style={{ fontWeight: 700 }}>{report.pnl_total ?? 0}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Imposte</div>
-                  <div style={{ fontWeight: 700 }}>{report.tax_due ?? 0}</div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Tab content */}
+      {activeTab === 'upload' && (
+        <UploadClient
+          allowedYears={allowedYears}
+          plan={plan}
+          onReportReady={handleReportReady}
+        />
+      )}
+
+      {activeTab === 'reports' && (
+        <ReportsTable
+          highlightId={highlightId}
+          onSelectTaxForm={handleSelectTaxForm}
+        />
+      )}
+
+      {activeTab === 'tax-form' && selectedReportId && (
+        <TaxFormClient
+          reportId={selectedReportId}
+          onBack={handleBackToReports}
+        />
+      )}
+
+      {activeTab === 'tax-form' && !selectedReportId && (
+        <div style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
+          <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
+            Seleziona un report dalla tab &quot;Report&quot; per visualizzare il facsimile RW/RT.
+          </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab('reports')}
+            style={{ marginTop: 16, padding: '10px 20px', borderRadius: 100, background: accent, color: '#fff', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+          >
+            Vai ai Report
+          </button>
+        </div>
+      )}
     </div>
-  );
+  )
 }

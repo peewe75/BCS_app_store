@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import VideoPlaceholder from './VideoPlaceholder';
@@ -19,9 +21,11 @@ export interface ProductSectionProps {
   bgColor: string;
 }
 
+const easeOut: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: easeOut } },
 };
 
 const slideIn = (direction: 'left' | 'right') => ({
@@ -29,7 +33,7 @@ const slideIn = (direction: 'left' | 'right') => ({
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 },
+    transition: { duration: 0.8, ease: easeOut, delay: 0.15 },
   },
 });
 

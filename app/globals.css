@@ -52,3 +52,32 @@ img {
 ::selection {
   background: rgba(55, 19, 236, 0.14);
 }
+
+/* Product section responsive grid */
+.bcs-product-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .bcs-product-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+}
+
+/* Video frame styling */
+.bcs-video-frame {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Toast animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Spinner animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
