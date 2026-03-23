@@ -1,279 +1,444 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
-
-type UgcVideo = {
-  id: string;
-  product_image_url: string | null;
-  video_url: string | null;
-  status: string | null;
-  prompt?: string | null;
-  product_name?: string | null;
-  style?: string | null;
-  created_at: string;
-};
-
-const accent = '#ec4899';
-const card: React.CSSProperties = { padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' };
-
-const STYLES = [
-  { id: 'professional', label: 'Professionale', emoji: '💼' },
-  { id: 'playful', label: 'Giocoso', emoji: '🎨' },
-  { id: 'minimal', label: 'Minimale', emoji: '⬜' },
-  { id: 'luxury', label: 'Lusso', emoji: '✨' },
-  { id: 'energetic', label: 'Energetico', emoji: '⚡' },
-  { id: 'natural', label: 'Naturale', emoji: '🌿' },
-];
+import React, { useState, useEffect, useRef } from 'react';
+import { WorkflowStage, GenerationResult, LogEntry } from '@/src/apps/ugc/types';
+import * as apiClient from '@/src/apps/ugc/api-client';
+import { ConfigurationScreen } from './ugc/ConfigurationScreen';
+import {
+  IMAGE_STYLES,
+  UGC_STYLES,
+  TARGET_AUDIENCES,
+  PLATFORMS,
+  LANGUAGES,
+} from '@/src/apps/ugc/constants';
 
 export default function UgcWorkspace() {
-  const { getToken, userId } = useAuth();
-  const [videos, setVideos] = useState<UgcVideo[]>([]);
+  const [currentStage, setCurrentStage] = useState<WorkflowStage>(WorkflowStage.IDLE);
+  const [data, setData] = useState<GenerationResult>({
+    productImages: [],
+    imagePrompt: null,
+    generatedImage: null,
+    videoPrompt: null,
+    videoUrl: null,
+  });
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Form state
-  const [productName, setProductName] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState('professional');
-  const [generating, setGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Generation options
+  const [imageStyle, setImageStyle] = useState<string>(IMAGE_STYLES[0]);
+  const [chaosLevel, setChaosLevel] = useState<number>(30);
+  const [useProModel, setUseProModel] = useState<boolean>(false);
 
-  // Load history
-  const loadVideos = useCallback(async () => {
-    if (!userId) return;
-    const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase;
-    if (!client) return;
-    const { data } = await client
-      .from('ugc_videos')
-      .select('id, product_image_url, video_url, status, prompt, product_name, style, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setVideos((data as UgcVideo[] | null) ?? []);
-  }, [getToken, userId]);
+  // Marketing options
+  const [targetAudience, setTargetAudience] = useState(TARGET_AUDIENCES[0]);
+  const [platform, setPlatform] = useState(PLATFORMS[0]);
+  const [ugcStyle, setUgcStyle] = useState<string>(UGC_STYLES[0]);
+  const [language, setLanguage] = useState<string>('Italian');
 
-  useEffect(() => { void loadVideos(); }, [loadVideos]);
+  // Dimensions
+  const [prodWidth, setProdWidth] = useState('');
+  const [prodHeight, setProdHeight] = useState('');
+  const [prodUnit, setProdUnit] = useState('cm');
 
-  // Generate
-  const handleGenerate = async () => {
-    if (!productName.trim()) return;
-    setGenerating(true);
-    setError(null);
-    setGeneratedImage(null);
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [logs]);
 
+  const addLog = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setLogs(prev => [...prev, { timestamp: new Date(), message, type }]);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 3 - data.productImages.length;
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+
+    if (filesToProcess.length === 0) {
+      addLog('Max 3 images limit reached.', 'error');
+      return;
+    }
+
+    let processedCount = 0;
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setData(prev => ({
+          ...prev,
+          productImages: [...prev.productImages, reader.result as string],
+        }));
+        processedCount++;
+        if (processedCount === filesToProcess.length) {
+          addLog(`${processedCount} image(s) uploaded successfully.`, 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (event.target) event.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setData(prev => ({
+      ...prev,
+      productImages: prev.productImages.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Step 1: Analyze product → image prompt
+  const runAnalysis = async () => {
+    if (data.productImages.length === 0) return;
     try {
-      const res = await fetch('/api/ugc/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName, prompt, style }),
-      });
-      const json = await res.json();
+      setCurrentStage(WorkflowStage.ANALYZING_PRODUCT);
+      addLog(`Analisi immagini prodotto (${ugcStyle}, ${language})...`, 'info');
 
-      if (!res.ok) {
-        setError(json.error ?? 'Errore nella generazione');
-      } else if (json.imageUrl) {
-        setGeneratedImage(json.imageUrl);
-        await loadVideos();
-      } else {
-        setError('Nessuna immagine generata. Riprova con un prompt diverso.');
-      }
-    } catch {
-      setError('Errore di connessione.');
-    } finally {
-      setGenerating(false);
+      const imgPrompt = await apiClient.generateLifestylePrompt({
+        imagesBase64: data.productImages,
+        style: imageStyle,
+        chaos: chaosLevel,
+        targetAudience,
+        platform,
+        ugcStyle,
+        language,
+        dimensions: { width: prodWidth, height: prodHeight, unit: prodUnit },
+        promptLanguage: 'Italian',
+      });
+      setData(prev => ({ ...prev, imagePrompt: imgPrompt }));
+      setCurrentStage(WorkflowStage.REVIEWING_IMAGE_PROMPT);
+      addLog('Prompt creato. In attesa di revisione.', 'info');
+    } catch (error: unknown) {
+      setCurrentStage(WorkflowStage.ERROR);
+      addLog((error instanceof Error ? error.message : 'Errore analisi prodotto'), 'error');
     }
   };
 
-  const handleReset = () => {
-    setProductName('');
-    setPrompt('');
-    setStyle('professional');
-    setGeneratedImage(null);
-    setError(null);
+  // Step 2a: Generate lifestyle image
+  const runImageGeneration = async () => {
+    if (!data.imagePrompt) return;
+    try {
+      setCurrentStage(WorkflowStage.GENERATING_IMAGE);
+      addLog(`Generazione immagine lifestyle...`, 'info');
+
+      const referenceImage = data.productImages.length > 0 ? data.productImages[0] : null;
+      const lifestyleImg = await apiClient.generateLifestyleImage({
+        prompt: data.imagePrompt,
+        referenceImageBase64: referenceImage,
+        mode: useProModel ? 'quality' : 'speed',
+        aspectRatio: '16:9',
+      });
+
+      setData(prev => ({ ...prev, generatedImage: lifestyleImg }));
+      setCurrentStage(WorkflowStage.REVIEWING_GENERATED_IMAGE);
+      addLog('Immagine generata. Revisiona e continua.', 'success');
+    } catch (error: unknown) {
+      setCurrentStage(WorkflowStage.ERROR);
+      addLog((error instanceof Error ? error.message : 'Errore generazione immagine'), 'error');
+    }
+  };
+
+  // Step 2b: Generate video prompt
+  const runVideoPromptGeneration = async () => {
+    if (!data.generatedImage) return;
+    try {
+      setCurrentStage(WorkflowStage.ANALYZING_SCENE);
+      addLog('Analisi della scena...', 'info');
+
+      const vidPrompt = await apiClient.generateVideoPrompt({
+        generatedImageBase64: data.generatedImage,
+        ugcStyle,
+        platform,
+        language,
+        promptLanguage: 'Italian',
+      });
+
+      setData(prev => ({ ...prev, videoPrompt: vidPrompt }));
+      setCurrentStage(WorkflowStage.REVIEWING_VIDEO_PROMPT);
+      addLog('Prompt video pronto. In attesa di revisione.', 'info');
+    } catch (error: unknown) {
+      setCurrentStage(WorkflowStage.ERROR);
+      addLog((error instanceof Error ? error.message : 'Errore creazione prompt video'), 'error');
+    }
+  };
+
+  // Step 3: Generate video with Veo
+  const runVideoGeneration = async () => {
+    if (!data.generatedImage || !data.videoPrompt) return;
+    try {
+      setCurrentStage(WorkflowStage.GENERATING_VIDEO);
+      addLog('Generazione video con Veo...', 'info');
+
+      const videoUrl = await apiClient.generateVeoVideo({ imageBase64: data.generatedImage, prompt: data.videoPrompt });
+
+      setData(prev => ({ ...prev, videoUrl }));
+      addLog('Video generato con successo!', 'success');
+      setCurrentStage(WorkflowStage.COMPLETED);
+    } catch (error: unknown) {
+      setCurrentStage(WorkflowStage.ERROR);
+      addLog((error instanceof Error ? error.message : 'Errore generazione video'), 'error');
+    }
+  };
+
+  const handleRetryVideo = () => {
+    setCurrentStage(WorkflowStage.REVIEWING_VIDEO_PROMPT);
+    addLog('Riprovando la generazione video...', 'info');
+  };
+
+  const handleDownloadVideo = () => {
+    if (!data.videoUrl) return;
+    const a = document.createElement('a');
+    a.href = data.videoUrl;
+    a.download = `ugc-video-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    addLog('Download video avviato.', 'success');
+  };
+
+  const handleDownloadImage = () => {
+    if (!data.generatedImage) return;
+    const link = document.createElement('a');
+    link.href = data.generatedImage;
+    link.download = 'lifestyle-generato.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addLog('Immagine scaricata.', 'success');
+  };
+
+  const handleRegenerateImage = () => {
+    setData(prev => ({ ...prev, generatedImage: null, videoPrompt: null, videoUrl: null }));
+    setCurrentStage(WorkflowStage.REVIEWING_IMAGE_PROMPT);
+    addLog('Rigenerazione immagine...', 'info');
+  };
+
+  const handleShare = async () => {
+    if (!data.videoUrl) return;
+    try {
+      const response = await fetch(data.videoUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'ugc-ad.mp4', { type: 'video/mp4' });
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'UGC Ad', text: 'Video generato con BCS AI!' });
+        addLog('Video condiviso!', 'success');
+      } else {
+        addLog('Condivisione Web non supportata su questo dispositivo.', 'error');
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        addLog(`Condivisione fallita: ${error.message}`, 'error');
+      }
+    }
+  };
+
+  const reset = () => {
+    setCurrentStage(WorkflowStage.IDLE);
+    setData({ productImages: [], imagePrompt: null, generatedImage: null, videoPrompt: null, videoUrl: null });
+    setLogs([]);
   };
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      {/* Header */}
-      <section style={card}>
-        <p style={{ margin: '0 0 8px', color: accent, fontWeight: 700, textTransform: 'uppercase', fontSize: 12, letterSpacing: '0.06em' }}>UGC Ad Creator</p>
-        <h1 style={{ margin: '0 0 10px', fontSize: 34, fontFamily: 'var(--font-display)' }}>Crea contenuti pubblicitari con AI</h1>
-        <p style={{ margin: 0, color: '#6E6E73', lineHeight: 1.6 }}>
-          Genera immagini pubblicitarie professionali per i tuoi prodotti usando Google Gemini. Perfette per TikTok, Instagram e Facebook Ads.
-        </p>
-      </section>
+    <ConfigurationScreen
+      productImages={data.productImages}
+      onUpload={handleFileUpload}
+      onRemoveImage={removeImage}
+      onAnalyze={runAnalysis}
+      isAnalyzing={currentStage === WorkflowStage.ANALYZING_PRODUCT}
+      useProModel={useProModel}
+      setUseProModel={setUseProModel}
+      chaosLevel={chaosLevel}
+      setChaosLevel={setChaosLevel}
+      width={prodWidth}
+      setWidth={setProdWidth}
+      height={prodHeight}
+      setHeight={setProdHeight}
+      unit={prodUnit}
+      setUnit={setProdUnit}
+      language={language}
+      setLanguage={setLanguage}
+      allLanguages={LANGUAGES}
+      targetAudience={targetAudience}
+      setTargetAudience={setTargetAudience}
+      audienceOptions={TARGET_AUDIENCES}
+      platform={platform}
+      setPlatform={setPlatform}
+      platformOptions={PLATFORMS}
+      ugcStyle={ugcStyle}
+      setUgcStyle={setUgcStyle}
+      ugcStyleOptions={UGC_STYLES}
+      imageStyle={imageStyle}
+      setImageStyle={setImageStyle}
+      imageStyleOptions={IMAGE_STYLES}
+    >
+      {currentStage !== WorkflowStage.IDLE && (
+        <div className="results-section">
 
-      {/* Generator form */}
-      <section style={card}>
-        <h2 style={{ margin: '0 0 20px', fontFamily: 'var(--font-display)' }}>Genera nuovo contenuto</h2>
-
-        <div style={{ display: 'grid', gap: 16 }}>
-          {/* Product name */}
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 6 }}>Nome prodotto *</label>
-            <input
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              placeholder="es. Crema viso idratante Bio"
-              style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', fontSize: 15, background: '#FAFAFA', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {/* Style selector */}
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 8 }}>Stile visivo</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {STYLES.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setStyle(s.id)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 100,
-                    border: style === s.id ? `2px solid ${accent}` : '2px solid rgba(0,0,0,0.06)',
-                    background: style === s.id ? `${accent}10` : '#fff',
-                    color: style === s.id ? accent : '#333',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <span>{s.emoji}</span> {s.label}
-                </button>
+          {/* Status & Logs */}
+          <div className="result-card">
+            <div className="result-header">
+              <span className="result-title">System Status</span>
+              <span className="pill active" style={{ fontSize: 10, padding: '4px 12px' }}>
+                {currentStage.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div className="terminal-box">
+              {logs.map((log, i) => (
+                <div key={i} style={{ color: log.type === 'error' ? '#ef4444' : log.type === 'success' ? '#4ade80' : '#cbd5e1' }}>
+                  <span style={{ opacity: 0.5 }}>[{log.timestamp.toLocaleTimeString()}]</span> {log.message}
+                </div>
               ))}
+              <div ref={logsEndRef} />
             </div>
           </div>
 
-          {/* Custom prompt */}
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 6 }}>Descrizione aggiuntiva (opzionale)</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="es. Sfondo rosa con fiori, testo grande con lo sconto del 20%, stile Instagram Stories..."
-              rows={3}
-              style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', fontSize: 14, background: '#FAFAFA', resize: 'vertical', boxSizing: 'border-box' }}
-            />
-          </div>
+          {/* Image Generation */}
+          {(currentStage === WorkflowStage.GENERATING_IMAGE ||
+            currentStage === WorkflowStage.REVIEWING_IMAGE_PROMPT ||
+            data.generatedImage) && (
+            <div className="result-card">
+              <div className="result-header">
+                <span className="result-title">Visual Base</span>
+              </div>
 
-          {/* Error */}
-          {error && (
-            <div style={{ padding: 14, borderRadius: 12, background: '#FEF2F2', color: '#991B1B', fontSize: 14 }}>
-              {error}
+              {currentStage === WorkflowStage.REVIEWING_IMAGE_PROMPT && !data.generatedImage && (
+                <>
+                  <label className="label">Step 1: Perfeziona il Prompt Immagine</label>
+                  <textarea
+                    value={data.imagePrompt || ''}
+                    onChange={(e) => setData(prev => ({ ...prev, imagePrompt: e.target.value }))}
+                    className="prompt-box"
+                    style={{ marginBottom: 16 }}
+                    placeholder="Prompt immagine..."
+                  />
+                  <button className="btn-primary" onClick={runImageGeneration}>
+                    Genera Immagine 🎨
+                  </button>
+                </>
+              )}
+
+              {currentStage === WorkflowStage.GENERATING_IMAGE && (
+                <div className="loading-skeleton">
+                  <div className="skeleton-shimmer" />
+                  <div className="loading-text">
+                    <div className="loading-spinner" />
+                    Generazione Immagine...
+                  </div>
+                </div>
+              )}
+
+              {data.generatedImage && (
+                <>
+                  <div className="media-container">
+                    <img src={data.generatedImage} alt="Generated Asset" />
+                    <button className="download-btn" onClick={handleDownloadImage} title="Download">
+                      ↓
+                    </button>
+                  </div>
+                  <div className="action-row">
+                    <button className="btn-secondary" onClick={handleRegenerateImage} style={{ flex: 1 }}>
+                      Rigenera Immagine 🔄
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-            {generatedImage && (
-              <button onClick={handleReset} style={{ padding: '12px 24px', borderRadius: 100, background: '#F5F5F7', color: '#333', border: '1px solid rgba(0,0,0,0.08)', fontWeight: 600, cursor: 'pointer' }}>
-                Nuovo
-              </button>
-            )}
-            <button
-              onClick={handleGenerate}
-              disabled={!productName.trim() || generating}
-              style={{
-                padding: '12px 28px',
-                borderRadius: 100,
-                background: productName.trim() && !generating ? accent : '#E5E7EB',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: productName.trim() && !generating ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              {generating && (
-                <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          {/* Video Generation */}
+          {data.generatedImage && (
+            <div className="result-card" style={{ border: currentStage === WorkflowStage.REVIEWING_GENERATED_IMAGE ? '2px solid #8A2BE2' : '' }}>
+              <div className="result-header">
+                <span className="result-title">Motion Layer</span>
+              </div>
+
+              {currentStage === WorkflowStage.REVIEWING_GENERATED_IMAGE && (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <p style={{ color: '#64748b', marginBottom: 20 }}>Immagine pronta. Configura il movimento video.</p>
+                  <button className="btn-primary" onClick={runVideoPromptGeneration}>
+                    Inizializza Video Engine ➡️
+                  </button>
+                </div>
               )}
-              {generating ? 'Generazione in corso...' : 'Genera con AI'}
-            </button>
-          </div>
-        </div>
-      </section>
 
-      {/* Generated result */}
-      {generatedImage && (
-        <section style={card}>
-          <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-display)' }}>Risultato</h2>
-          <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)', maxWidth: 600, margin: '0 auto' }}>
-            <img
-              src={generatedImage}
-              alt={`UGC per ${productName}`}
-              style={{ width: '100%', display: 'block' }}
-            />
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <a
-              href={generatedImage}
-              download={`ugc-${productName.replace(/\s+/g, '-').toLowerCase()}.png`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 22px',
-                borderRadius: 100,
-                background: accent,
-                color: '#fff',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: 14,
-              }}
-            >
-              📥 Scarica immagine
-            </a>
-          </div>
-        </section>
-      )}
+              {currentStage === WorkflowStage.REVIEWING_VIDEO_PROMPT && (
+                <>
+                  <label className="label">Step 2: Director's Prompt</label>
+                  <textarea
+                    value={data.videoPrompt || ''}
+                    onChange={(e) => setData(prev => ({ ...prev, videoPrompt: e.target.value }))}
+                    className="prompt-box"
+                    style={{ marginBottom: 16 }}
+                    placeholder="Descrivi movimento camera, audio, azione..."
+                  />
+                  <button
+                    className="btn-primary"
+                    style={{ background: 'linear-gradient(135deg, #8A2BE2, #ec4899)' }}
+                    onClick={runVideoGeneration}
+                  >
+                    Genera Video 🎬
+                  </button>
+                </>
+              )}
 
-      {/* History */}
-      <section style={card}>
-        <h2 style={{ margin: '0 0 16px', fontFamily: 'var(--font-display)' }}>Generazioni recenti</h2>
-        {videos.length === 0 ? (
-          <div style={{ padding: 20, borderRadius: 14, background: '#FDF2F8', color: '#9D174D', fontSize: 14 }}>
-            Nessun contenuto generato. Inserisci il nome del tuo prodotto per iniziare.
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-            {videos.map((v) => (
-              <article key={v.id} style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}>
-                {v.video_url && v.video_url.startsWith('data:image') ? (
-                  <img src={v.video_url} alt={v.product_name ?? ''} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
-                ) : (
-                  <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${accent}08`, color: accent }}>
-                    {v.status === 'processing' ? '⏳' : v.status === 'failed' ? '❌' : '🖼️'}
+              {currentStage === WorkflowStage.GENERATING_VIDEO && (
+                <div className="result-card" style={{ border: '2px solid #8A2BE2' }}>
+                  <div className="result-header">
+                    <span className="result-title">Rendering Video</span>
                   </div>
-                )}
-                <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{v.product_name ?? 'Senza nome'}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                    <span style={{
-                      padding: '2px 8px',
-                      borderRadius: 100,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      background: v.status === 'completed' ? '#D1FAE5' : v.status === 'processing' ? '#FEF3C7' : '#FEE2E2',
-                      color: v.status === 'completed' ? '#065F46' : v.status === 'processing' ? '#92400E' : '#991B1B',
-                    }}>
-                      {v.status ?? 'pending'}
-                    </span>
-                    <span style={{ fontSize: 11, color: '#999' }}>{new Date(v.created_at).toLocaleDateString('it-IT')}</span>
+                  <div className="loading-skeleton" style={{ aspectRatio: '16/9' }}>
+                    <div className="skeleton-shimmer" />
+                    <div className="loading-text" style={{ bottom: 'auto', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                      <div className="loading-spinner" />
+                      Elaborazione con Veo...
+                    </div>
+                  </div>
+                  <div style={{ padding: '0 20px 20px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 5 }}>
+                      <span>AI Processing</span>
+                      <span>~60s</span>
+                    </div>
+                    <div className="progress-container">
+                      <div className="progress-bar" />
+                    </div>
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+              )}
+
+              {data.videoUrl && (
+                <>
+                  <div className="media-container">
+                    <video src={data.videoUrl} controls autoPlay loop />
+                    <button className="download-btn" onClick={handleDownloadVideo} title="Download Video">
+                      ↓
+                    </button>
+                  </div>
+                  <div className="action-row">
+                    <button className="btn-secondary" onClick={handleRetryVideo} style={{ flex: 1, borderColor: '#8A2BE2', color: '#8A2BE2' }}>
+                      Rigenera
+                    </button>
+                    <button className="btn-secondary" onClick={handleShare} style={{ flex: 1 }}>
+                      Condividi
+                    </button>
+                    <button className="btn-secondary" onClick={reset} style={{ flex: 1, borderColor: '#cbd5e1', color: '#64748b' }}>
+                      Nuovo Progetto
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {currentStage === WorkflowStage.ERROR && (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <p style={{ color: '#ef4444', marginBottom: 16 }}>Si è verificato un errore. Controlla i log sopra.</p>
+                  <button className="btn-secondary" onClick={reset}>
+                    Ricomincia
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      )}
+    </ConfigurationScreen>
   );
 }
