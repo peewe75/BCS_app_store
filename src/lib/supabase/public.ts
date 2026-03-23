@@ -13,8 +13,10 @@ export const publicSupabase =
     ? createClient(env.supabaseUrl, env.supabaseAnonKey, supabaseOptions)
     : null;
 
+type ClerkGetToken = (options?: { template?: string }) => Promise<string | null>;
+
 export function createClerkSupabaseBrowserClient(
-  getToken: () => Promise<string | null>,
+  getToken: ClerkGetToken,
 ) {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
     return null;
@@ -22,6 +24,7 @@ export function createClerkSupabaseBrowserClient(
 
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
     ...supabaseOptions,
-    accessToken: getToken,
+    // Supabase must receive the Clerk JWT minted for the `supabase` template.
+    accessToken: async () => getToken({ template: 'supabase' }),
   });
 }
