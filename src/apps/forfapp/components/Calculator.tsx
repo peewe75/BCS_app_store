@@ -15,8 +15,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
   const [error, setError] = useState<string | null>(null);
   const [atecoQuery, setAtecoQuery] = useState('');
   const [showAtecoDropdown, setShowAtecoDropdown] = useState(false);
-  
-  // AI ATECO states
   const [activityDescription, setActivityDescription] = useState('');
   const [atecoSuggestions, setAtecoSuggestions] = useState<AtecoSuggestion[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -42,13 +40,13 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
     if (!atecoQuery) return [];
     const lowerQ = atecoQuery.toLowerCase();
     return ATECO_CODES.filter(
-      (a) => a.code.includes(lowerQ) || a.description.toLowerCase().includes(lowerQ)
+      (a) => a.code.includes(lowerQ) || a.description.toLowerCase().includes(lowerQ),
     );
   }, [atecoQuery]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    let val: any = value;
+    let val: string | number | boolean = value;
 
     if (type === 'number') {
       val = value === '' ? '' : parseFloat(value);
@@ -59,7 +57,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
     setFormData((prev) => {
       const newState = { ...prev, [name]: val };
 
-      // Logica specifica quando cambia la Gestione principale
       if (name === 'gestione') {
         if (val === SocialManagementType.INPS_SEPARATA) {
           newState.aliqContributi = '';
@@ -68,7 +65,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
           newState.selectedFundId = '';
         } else if (val === SocialManagementType.INPS_ARTIGIANI) {
           newState.aliqContributi = '';
-          newState.minContributi = 4515; // Approx minimale artigiani 2024
+          newState.minContributi = 4515;
           newState.applyMinContributi = true;
           newState.selectedFundId = '';
         }
@@ -80,25 +77,26 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
 
   const handleFundChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const fundId = e.target.value;
-    const fund = PROFESSIONAL_FUNDS.find(f => f.id === fundId);
+    const fund = PROFESSIONAL_FUNDS.find((item) => item.id === fundId);
 
     if (fund) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         selectedFundId: fundId,
-        aliqContributi: fund.aliq > 0 ? fund.aliq : '', // Se 0 (Altro), lascia vuoto per input manuale
+        aliqContributi: fund.aliq > 0 ? fund.aliq : '',
         minContributi: fund.min > 0 ? fund.min : '',
-        applyMinContributi: fund.min > 0 // Se c'è un minimale definito, lo attiviamo di default
+        applyMinContributi: fund.min > 0,
       }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        selectedFundId: '',
-        aliqContributi: '',
-        minContributi: '',
-        applyMinContributi: false
-      }));
+      return;
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      selectedFundId: '',
+      aliqContributi: '',
+      minContributi: '',
+      applyMinContributi: false,
+    }));
   };
 
   const selectAteco = (code: typeof ATECO_CODES[0]) => {
@@ -109,22 +107,23 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
 
   const handleAIFindAteco = async () => {
     if (!activityDescription.trim()) {
-      setAiError("Inserisci una descrizione dell'attività");
+      setAiError("Inserisci una descrizione dell'attivita");
       return;
     }
-    
+
     setAiLoading(true);
     setAiError(null);
     setAtecoSuggestions([]);
-    
+
     try {
       const suggestions = await findAtecoCodes(activityDescription);
       setAtecoSuggestions(suggestions);
       if (suggestions.length === 0) {
-        setAiError("Nessun codice ATECO trovato. Prova con una descrizione diversa.");
+        setAiError('Nessun codice ATECO trovato. Prova con una descrizione diversa.');
       }
-    } catch (err: any) {
-      setAiError(err.message || "Errore nella ricerca. Riprova.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Errore nella ricerca. Riprova.';
+      setAiError(message);
     } finally {
       setAiLoading(false);
     }
@@ -134,7 +133,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
     const atecoCode = {
       code: suggestion.code,
       description: suggestion.description,
-      coeff: suggestion.coeff
+      coeff: suggestion.coeff,
     };
     setFormData((prev) => ({ ...prev, ateco: atecoCode, manualCoeff: '' }));
     setAtecoQuery(`${suggestion.code} - ${suggestion.description}`);
@@ -143,14 +142,13 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
   };
 
   const validate = () => {
-    if (!formData.incasso || formData.incasso <= 0) return "Inserisci un incasso valido";
+    if (!formData.incasso || formData.incasso <= 0) return 'Inserisci un incasso valido';
     if (!formData.ateco && (!formData.manualCoeff || formData.manualCoeff <= 0)) {
-      return "Seleziona un codice ATECO o inserisci un coefficiente manuale";
+      return 'Seleziona un codice ATECO o inserisci un coefficiente manuale';
     }
 
-    // Validazione specifica Cassa
     if (formData.gestione === SocialManagementType.CASSA_PROFESSIONALE) {
-      if (!formData.selectedFundId) return "Seleziona la tua Cassa Professionale di appartenenza";
+      if (!formData.selectedFundId) return 'Seleziona la tua Cassa Professionale di appartenenza';
       if (!formData.aliqContributi) return "Inserisci l'aliquota della tua Cassa Professionale";
     }
 
@@ -159,20 +157,19 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const err = validate();
-    if (err) {
-      setError(err);
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError(null);
 
-    // Tracking Event: Click su Calcola
     trackEvent('calcola_click', {
       incasso: formData.incasso,
       ateco_code: formData.ateco?.code || 'MANUALE',
       gestione: formData.gestione,
       cassa: formData.selectedFundId || 'N/A',
-      imposta: formData.aliqImposta
+      imposta: formData.aliqImposta,
     });
 
     setLoading(true);
@@ -180,9 +177,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
     try {
       const result = calculateNetto(formData, PROFESSIONAL_FUNDS);
       onCalculationComplete(result, formData);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError("Si è verificato un errore. Riprova.");
+      setError('Si e verificato un errore. Riprova.');
     } finally {
       setLoading(false);
     }
@@ -198,13 +195,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
         <p className="text-primary-100 text-sm">Inserisci i tuoi dati per una stima immediata.</p>
       </div>
 
-
-
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Incasso */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Incasso Annuo (€) <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Incasso Annuo (EUR) <span className="text-red-500">*</span></label>
             <input
               type="number"
               name="incasso"
@@ -218,11 +212,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             />
           </div>
 
-          {/* Imposta Sostitutiva */}
           <div>
             <div className="flex items-center gap-2 mb-1">
               <label className="block text-sm font-medium text-slate-700">Imposta Sostitutiva</label>
-              <Tooltip text="5% per i primi 5 anni se nuova attività, altrimenti 15%.">
+              <Tooltip text="5% per i primi 5 anni se nuova attivita, altrimenti 15%.">
                 <span className="text-slate-400 hover:text-primary-600">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </span>
@@ -231,14 +224,14 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             <div className="flex bg-slate-100 p-1 rounded-lg">
               <button
                 type="button"
-                onClick={() => setFormData(p => ({ ...p, aliqImposta: 0.05 }))}
+                onClick={() => setFormData((prev) => ({ ...prev, aliqImposta: 0.05 }))}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${formData.aliqImposta === 0.05 ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 Start-up (5%)
               </button>
               <button
                 type="button"
-                onClick={() => setFormData(p => ({ ...p, aliqImposta: 0.15 }))}
+                onClick={() => setFormData((prev) => ({ ...prev, aliqImposta: 0.15 }))}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${formData.aliqImposta === 0.15 ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 Standard (15%)
@@ -247,16 +240,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
           </div>
         </div>
 
-        {/* AI ATECO Search */}
         <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl p-4 border border-primary-100">
           <div className="flex items-center gap-2 mb-3">
             <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span className="text-sm font-semibold text-primary-700">Trova codice ATECO con AI</span>
+            <span className="text-sm font-semibold text-primary-700">Assistente AI per il codice ATECO</span>
           </div>
-          <p className="text-xs text-slate-600 mb-3">Descrivi la tua attività e l'AI ti suggerirà il codice ATECO più adatto.</p>
-          
+          <p className="text-xs text-slate-600 mb-3">
+            Descrivi la tua attivita e l&apos;AI ti suggerira il codice ATECO e il coefficiente di redditivita piu probabili.
+            Il calcolo fiscale resta deterministico.
+          </p>
+
           <div className="flex gap-2">
             <input
               type="text"
@@ -275,9 +270,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             </button>
           </div>
 
-          {aiError && (
-            <p className="text-red-600 text-xs mt-2">{aiError}</p>
-          )}
+          {aiError && <p className="text-red-600 text-xs mt-2">{aiError}</p>}
 
           {atecoSuggestions.length > 0 && (
             <div className="mt-3">
@@ -285,16 +278,16 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
               <select
                 aria-label="Seleziona ATECO consigliato"
                 onChange={(e) => {
-                  const idx = parseInt(e.target.value);
+                  const idx = parseInt(e.target.value, 10);
                   if (idx >= 0) selectAtecoSuggestion(atecoSuggestions[idx]);
                 }}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-primary-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
                 defaultValue=""
               >
                 <option value="" disabled>-- Scegli il codice --</option>
-                {atecoSuggestions.map((s, idx) => (
+                {atecoSuggestions.map((suggestion, idx) => (
                   <option key={idx} value={idx}>
-                    {s.code} - {s.description} (coef. {(s.coeff * 100).toFixed(0)}%)
+                    {suggestion.code} - {suggestion.description} (coef. {(suggestion.coeff * 100).toFixed(0)}%)
                   </option>
                 ))}
               </select>
@@ -302,11 +295,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
           )}
         </div>
 
-        {/* ATECO Autocomplete */}
         <div className="relative">
           <div className="flex items-center gap-2 mb-1">
             <label className="block text-sm font-medium text-slate-700">Codice ATECO <span className="text-red-500">*</span></label>
-            <Tooltip text="Il Codice ATECO definisce il coefficiente di redditività. Se non trovi il tuo codice, puoi inserire la percentuale manualmente.">
+            <Tooltip text="Il Codice ATECO definisce il coefficiente di redditivita. Se non trovi il tuo codice, puoi inserire la percentuale manualmente.">
               <span className="text-slate-400 hover:text-primary-600 cursor-help">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </span>
@@ -319,7 +311,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             onChange={(e) => {
               setAtecoQuery(e.target.value);
               setShowAtecoDropdown(true);
-              if (!e.target.value) setFormData(p => ({ ...p, ateco: null }));
+              if (!e.target.value) setFormData((prev) => ({ ...prev, ateco: null }));
             }}
             onFocus={() => setShowAtecoDropdown(true)}
             onBlur={() => setTimeout(() => setShowAtecoDropdown(false), 200)}
@@ -329,14 +321,14 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
           {showAtecoDropdown && atecoQuery && (
             <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto">
               {filteredAteco.length > 0 ? (
-                filteredAteco.map(code => (
+                filteredAteco.map((code) => (
                   <div
                     key={code.code}
                     className="px-4 py-2 hover:bg-primary-50 cursor-pointer text-sm border-b border-slate-50 last:border-0"
                     onMouseDown={() => selectAteco(code)}
                   >
                     <span className="font-bold text-primary-700">{code.code}</span> - {code.description}
-                    <div className="text-xs text-slate-500">Coeff. Redditività: {code.coeff * 100}%</div>
+                    <div className="text-xs text-slate-500">Coeff. Redditivita: {code.coeff * 100}%</div>
                   </div>
                 ))
               ) : (
@@ -350,7 +342,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             </div>
           )}
 
-          {/* Fallback Manual Coeff */}
           {!formData.ateco && (
             <div className="mt-2 p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-sm">
               <p className="text-yellow-800 mb-2">Non trovi il tuo codice? Inserisci il coefficiente manualmente:</p>
@@ -376,7 +367,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
           )}
         </div>
 
-        {/* Gestione Previdenziale */}
         <div className="border-t border-slate-200 pt-4 bg-slate-50/50 -mx-6 px-6 pb-6">
           <div className="mt-4">
             <label className="block text-sm font-medium text-slate-700 mb-2">Gestione Previdenziale</label>
@@ -392,7 +382,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
               <option value={SocialManagementType.CASSA_PROFESSIONALE}>Cassa Professionale (Albo)</option>
             </select>
 
-            {/* Sub-Selection for Cassa Professionale */}
             {formData.gestione === SocialManagementType.CASSA_PROFESSIONALE && (
               <div className="mb-4 animate-fade-in-down">
                 <label className="block text-sm font-medium text-primary-700 mb-2">Seleziona il tuo Ente (Albo)</label>
@@ -404,26 +393,23 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
                   className="w-full px-4 py-2 rounded-lg border-2 border-primary-100 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none bg-white font-medium"
                 >
                   <option value="" disabled>-- Seleziona Cassa --</option>
-                  {PROFESSIONAL_FUNDS.map(fund => (
+                  {PROFESSIONAL_FUNDS.map((fund) => (
                     <option key={fund.id} value={fund.id}>{fund.name}</option>
                   ))}
                 </select>
               </div>
             )}
 
-            {/* Dettagli Contributi (Auto-filled or Manual) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-
-              {/* Aliquota */}
-              <div className={formData.gestione === SocialManagementType.INPS_SEPARATA ? "opacity-50 pointer-events-none" : ""}>
+              <div className={formData.gestione === SocialManagementType.INPS_SEPARATA ? 'opacity-50 pointer-events-none' : ''}>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Aliquota Contributiva (%)
-                  {formData.gestione === SocialManagementType.CASSA_PROFESSIONALE && formData.selectedFundId && " (Auto)"}
+                  {formData.gestione === SocialManagementType.CASSA_PROFESSIONALE && formData.selectedFundId && ' (Auto)'}
                 </label>
                 <input
                   type="number"
                   name="aliqContributi"
-                  placeholder={formData.gestione === SocialManagementType.INPS_SEPARATA ? "26.07% (Standard)" : "es. 14.5"}
+                  placeholder={formData.gestione === SocialManagementType.INPS_SEPARATA ? '26.07% (Standard)' : 'es. 14.5'}
                   value={formData.gestione === SocialManagementType.INPS_SEPARATA ? 26.07 : formData.aliqContributi}
                   onChange={handleInputChange}
                   readOnly={formData.gestione === SocialManagementType.INPS_SEPARATA}
@@ -431,7 +417,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
                 />
               </div>
 
-              {/* Minimale */}
               <div>
                 <div className="flex items-center gap-2 mb-1 min-h-[1.25rem]">
                   <input
@@ -441,14 +426,13 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
                     checked={formData.applyMinContributi}
                     onChange={handleInputChange}
                     className="rounded text-primary-600 focus:ring-primary-500"
-                  // Disable manual toggle if a specific fund enforces logic, strictly speaking we allow override but default is set
                   />
-                  <label htmlFor="applyMin" className="text-xs font-medium text-slate-600 cursor-pointer select-none">Applica Minimale (€)</label>
+                  <label htmlFor="applyMin" className="text-xs font-medium text-slate-600 cursor-pointer select-none">Applica Minimale (EUR)</label>
                 </div>
                 <input
                   type="number"
                   name="minContributi"
-                  placeholder="€ Minimo annuo"
+                  placeholder="EUR Minimo annuo"
                   value={formData.minContributi}
                   onChange={handleInputChange}
                   disabled={!formData.applyMinContributi}
@@ -469,7 +453,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
                 className="rounded text-primary-600 focus:ring-primary-500"
               />
               <label htmlFor="deduzione" className="text-sm text-slate-700 select-none cursor-pointer">
-                Deduzione contributi dal reddito (Consigliato: Sì)
+                Deduzione contributi dal reddito (Consigliato: Si)
               </label>
             </div>
           </div>
@@ -495,7 +479,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
               Calcolo in corso...
             </>
           ) : (
-            "Calcola il Netto"
+            'Calcola il Netto'
           )}
         </button>
         <p className="text-center text-xs text-slate-400">Cliccando accetti la privacy policy dello studio.</p>

@@ -20,7 +20,6 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
 
   return (
     <>
-      {/* Print-only styles */}
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -32,14 +31,12 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
 
       <div id="forfapp-result" ref={printRef} className="w-full max-w-3xl mx-auto animate-fade-in-up">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-          {/* Header */}
           <div className="bg-emerald-600 px-6 py-6 text-center">
             <h2 className="text-2xl font-bold text-white mb-1">Riepilogo Fiscale Forfettario</h2>
-            <p className="text-emerald-100">Stima basata sul regime forfettario — aggiornata 2024/25</p>
+            <p className="text-emerald-100">Stima basata sul regime forfettario aggiornata 2026</p>
           </div>
 
           <div className="p-8">
-            {/* Main Numbers */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
                 <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">Netto Annuo Stimato</p>
@@ -51,7 +48,6 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
               </div>
             </div>
 
-            {/* Results Table */}
             <div className="overflow-x-auto mb-8">
               <table className="w-full text-sm">
                 <thead>
@@ -90,18 +86,15 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
               </table>
             </div>
 
-            {/* Disclaimer */}
             <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
               <p className="text-sm text-amber-800">
-                <strong>Nota Bene:</strong> Questo calcolo è una stima indicativa a fini orientativi.
+                <strong>Nota Bene:</strong> Questo calcolo e una stima indicativa a fini orientativi aggiornata al 2026.
                 Le deduzioni, gli acconti e i saldi reali possono variare in base alla situazione specifica.
                 Si consiglia sempre una verifica con un professionista abilitato.
               </p>
             </div>
 
-            {/* Actions */}
             <div className="no-print flex flex-col sm:flex-row gap-3 mb-6">
-              {/* Print PDF */}
               <button
                 onClick={handlePrint}
                 className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
@@ -110,7 +103,6 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
                 Stampa / Salva PDF
               </button>
 
-              {/* Booking CTA */}
               <a
                 href={CONFIG.BOOKING_URL}
                 target="_blank"
@@ -118,11 +110,10 @@ export const ResultView: React.FC<ResultViewProps> = ({ data, onReset }) => {
                 onClick={() => trackEvent('cta_prenota_click', { location: 'result_view' })}
                 className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
               >
-                📅 Prenota Consulenza Gratuita
+                Prenota Consulenza Gratuita
               </a>
             </div>
 
-            {/* New Calculation Button */}
             <div className="no-print">
               <button
                 onClick={onReset}
