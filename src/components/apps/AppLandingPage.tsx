@@ -317,7 +317,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
             {app.video_src && (
               <a
                 href={app.video_src}
-                download
+                download={app.id === 'ugc' ? 'ugc-video.mp4' : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -336,7 +336,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M8 2v8M8 10l-3-3M8 10l3-3M2 13h12" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Scarica video demo
+                {app.id === 'ugc' ? 'Scarica Video UGC' : 'Scarica video demo d\'uso'}
               </a>
             )}
           </motion.div>
