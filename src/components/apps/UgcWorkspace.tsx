@@ -185,15 +185,25 @@ export default function UgcWorkspace() {
     addLog('Riprovando la generazione video...', 'info');
   };
 
-  const handleDownloadVideo = () => {
+  const handleDownloadVideo = async () => {
     if (!data.videoUrl) return;
-    const a = document.createElement('a');
-    a.href = data.videoUrl;
-    a.download = `ugc-video-${Date.now()}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    addLog('Download video avviato.', 'success');
+    try {
+      const response = await fetch(data.videoUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ugc-video-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      addLog('Download video avviato.', 'success');
+    } catch {
+      // Fallback: apri in nuova scheda
+      window.open(data.videoUrl, '_blank');
+      addLog('Video aperto in nuova scheda.', 'info');
+    }
   };
 
   const handleDownloadImage = () => {

@@ -313,49 +313,49 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
         </div>
       </section>
 
-      <section id="details" style={{ padding: '72px 24px 32px' }}>
-        <div className="bcs-app-detail-grid" style={{ maxWidth: 1240, margin: '0 auto' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <section id="details" style={{ padding: '72px 24px 40px' }}>
+        <div style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ margin: 0, color: accentColor, fontWeight: 700, fontSize: 14 }}>
               Perche esiste
             </p>
-            <h2 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 48px)', lineHeight: 1.02 }}>
+            <h2 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 48px)', lineHeight: 1.04, maxWidth: 720 }}>
               {content.problemTitle}
             </h2>
           </div>
-          <p style={{ margin: 0, color: '#4b5563', fontSize: 17, lineHeight: 1.8 }}>
+          <p style={{ margin: 0, color: '#4b5563', fontSize: 18, lineHeight: 1.8, maxWidth: 760 }}>
             {content.problemBody}
           </p>
         </div>
       </section>
 
-      <section style={{ padding: '24px 24px 56px' }}>
-        <div style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gap: 18 }}>
+      <section style={{ padding: '0 24px 56px' }}>
+        <div style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gap: 0 }}>
           {sections.map((section, index) => (
             <motion.article
               key={section.id}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5, delay: index * 0.04 }}
-              className="bcs-app-section-grid"
               style={{
                 borderTop: '1px solid rgba(0,0,0,0.08)',
-                paddingTop: 28,
+                paddingTop: 36,
+                paddingBottom: 36,
                 display: 'grid',
                 gap: 20,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ margin: 0, color: accentColor, fontSize: 13, fontWeight: 700 }}>
-                  Sezione {String(index + 1).padStart(2, '0')}
-                </p>
-                <h3 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 34px)', lineHeight: 1.08 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap' }}>
+                <span style={{ color: accentColor, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <h3 style={{ margin: 0, fontSize: 'clamp(22px, 3vw, 32px)', lineHeight: 1.1 }}>
                   {section.title}
                 </h3>
               </div>
               <div style={{ display: 'grid', gap: 18 }}>
-                <p style={{ margin: 0, color: '#4b5563', fontSize: 16, lineHeight: 1.8 }}>
+                <p style={{ margin: 0, color: '#4b5563', fontSize: 16, lineHeight: 1.8, maxWidth: 760 }}>
                   {section.body}
                 </p>
                 {section.bullets && section.bullets.length > 0 && (
@@ -384,13 +384,13 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
       </section>
 
       <section style={{ padding: '8px 24px 72px' }}>
-        <div className="bcs-app-detail-grid" style={{ maxWidth: 1240, margin: '0 auto', alignItems: 'start' }}>
-          <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ maxWidth: 1240, margin: '0 auto', display: 'grid', gap: 32 }}>
+          <div style={{ display: 'grid', gap: 12 }}>
             <p style={{ margin: 0, color: accentColor, fontWeight: 700, fontSize: 14 }}>
               {content.benefitsTitle}
             </p>
-            <h2 style={{ margin: 0, fontSize: 'clamp(28px, 4vw, 44px)', lineHeight: 1.04 }}>
-              Una pagina unica, un accesso piu chiaro, lo stesso catalogo.
+            <h2 style={{ margin: 0, fontSize: 'clamp(28px, 4vw, 44px)', lineHeight: 1.04, maxWidth: 640 }}>
+              Tutto quello che ti serve, in un solo strumento.
             </h2>
           </div>
           <div className="bcs-app-summary-grid">
