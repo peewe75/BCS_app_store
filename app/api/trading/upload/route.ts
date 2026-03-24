@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { isYearAllowedForPlan, PLAN_DETAILS } from '@/src/apps/trading/plans'
 import { buildUploadBlobKey, buildBlobKey, saveTextBlob, saveBlob } from '@/src/apps/trading/storage'
 import { getReportYears, parseHtmlReport, calculateTax, generateReportPdf } from '@/src/apps/trading/report-engine'
@@ -23,14 +23,9 @@ export async function POST(req: NextRequest) {
     .eq('app_id', 'trading')
     .maybeSingle()
 
-  // Check if admin
-  const { data: userData } = await supabase
-    .from('users')
-    .select('role')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-
-  const isAdmin = userData?.role === 'admin'
+  // Check if admin via Clerk publicMetadata (reliable, no Supabase dependency)
+  const clerkUser = await currentUser()
+  const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin'
   const plan = (grant?.plan as Plan) ?? (isAdmin ? 'pro' : null)
 
   if (!plan) {

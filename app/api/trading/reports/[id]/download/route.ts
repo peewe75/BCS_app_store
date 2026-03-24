@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin'
 import { getBlob } from '@/src/apps/trading/storage'
 
@@ -27,13 +27,8 @@ export async function GET(
   }
 
   // Check admin or owner
-  const { data: userData } = await supabase
-    .from('users')
-    .select('role')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-
-  const isAdmin = userData?.role === 'admin'
+  const clerkUser = await currentUser()
+  const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin'
   if (report.user_id !== userId && !isAdmin) {
     return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
   }
