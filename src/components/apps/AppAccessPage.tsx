@@ -31,6 +31,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [autoCheckoutStarted, setAutoCheckoutStarted] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +97,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     }
 
     setCheckoutLoading(true);
+    setCheckoutError(null);
     const response = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: {
@@ -106,13 +108,22 @@ export default function AppAccessPage({ slug }: { slug: string }) {
         planCode: 'default',
       }),
     });
-
-    const payload = await response.json();
+    const rawText = await response.text();
     setCheckoutLoading(false);
 
-    if (payload?.url) {
-      window.location.href = payload.url;
+    let payload: { url?: string; error?: string } | null = null;
+    try {
+      payload = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      payload = null;
     }
+
+    if (response.ok && payload?.url) {
+      window.location.href = payload.url;
+      return;
+    }
+
+    setCheckoutError(payload?.error ?? 'Checkout Stripe non disponibile in questo momento.');
   };
 
   useEffect(() => {
@@ -194,6 +205,11 @@ export default function AppAccessPage({ slug }: { slug: string }) {
               Torna alla dashboard
             </Link>
           </div>
+          {checkoutError ? (
+            <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>
+              {checkoutError}
+            </p>
+          ) : null}
         </div>
       </div>
     );
