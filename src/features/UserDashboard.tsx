@@ -7,6 +7,7 @@ import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
+import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -36,7 +37,7 @@ function formatDate(date?: Date | null): string {
 
 function getAppHref(app: AppRecord) {
   if (app.is_internal) {
-    return app.internal_route ?? `/apps/${app.id}`;
+    return app.internal_route ?? getAppWorkspaceRoute(app);
   }
 
   return app.cta_href ?? '#';

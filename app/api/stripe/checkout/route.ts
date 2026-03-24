@@ -49,8 +49,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const successUrl = `${env.appUrl}/apps/${appId}?checkout=success`;
-  const cancelUrl = `${env.appUrl}/apps/${appId}?checkout=cancelled`;
+  const successUrl = `${env.appUrl}/workspace/${appId}?checkout=success`;
+  const cancelUrl = `${env.appUrl}/workspace/${appId}?checkout=cancelled`;
 
   const session = await stripe.checkout.sessions.create({
     mode: plan.billing_type === 'subscription' ? 'subscription' : 'payment',

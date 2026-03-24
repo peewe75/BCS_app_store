@@ -207,7 +207,7 @@ export default function AppFormModal({ isOpen, onClose, onSave, editingApp }: Ap
       const dataToSave = {
         ...form,
         features: featuresText.split('\n').map((f) => f.trim()).filter(Boolean),
-        internal_route: form.is_internal ? (form.internal_route || `/apps/${form.id}`) : '',
+        internal_route: form.is_internal ? (form.internal_route || `/workspace/${form.id}`) : '',
       };
       await onSave(dataToSave, isNew);
       onClose();
@@ -354,7 +354,7 @@ export default function AppFormModal({ isOpen, onClose, onSave, editingApp }: Ap
               </div>
               <div style={s.fieldFull}>
                 <label style={s.label}>Route interna</label>
-                <input style={s.input} value={form.internal_route} onChange={(e) => update('internal_route', e.target.value)} placeholder={`/apps/${form.id || 'slug'}`} disabled={!form.is_internal} />
+                <input style={s.input} value={form.internal_route} onChange={(e) => update('internal_route', e.target.value)} placeholder={`/workspace/${form.id || 'slug'}`} disabled={!form.is_internal} />
               </div>
             </div>
           </div>
@@ -365,7 +365,7 @@ export default function AppFormModal({ isOpen, onClose, onSave, editingApp }: Ap
             <div style={s.grid}>
               <div>
                 <label style={s.label}>Video src</label>
-                <input style={s.input} value={form.video_src} onChange={(e) => update('video_src', e.target.value)} placeholder="/video/1.mp4" />
+                <input style={s.input} value={form.video_src} onChange={(e) => update('video_src', e.target.value)} placeholder="/video/UGC_video.mp4" />
               </div>
               <div>
                 <label style={s.label}>Poster src</label>

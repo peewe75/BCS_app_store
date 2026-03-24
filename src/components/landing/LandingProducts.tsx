@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { AppRecord } from '@/src/lib/catalog';
+import { getAppPublicRoute } from '@/src/lib/app-routes';
 import ProductSection from '@/src/components/ProductSection';
 
 interface LandingProductsProps {
@@ -25,12 +26,8 @@ export default function LandingProducts({ apps }: LandingProductsProps) {
           features={app.features ?? []}
           accentColor={app.accent_color ?? '#3713ec'}
           pricingBadge={app.pricing_badge ?? ''}
-          ctaText={app.cta_text ?? 'Scopri'}
-          ctaHref={
-            app.is_internal
-              ? app.internal_route ?? `/apps/${app.id}`
-              : app.cta_href ?? '#'
-          }
+          ctaText={`Scopri ${app.name}`}
+          ctaHref={getAppPublicRoute(app)}
           videoSrc={app.video_src ?? undefined}
           posterSrc={app.poster_src ?? undefined}
           layout={app.layout}

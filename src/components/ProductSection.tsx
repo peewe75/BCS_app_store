@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import VideoPlaceholder from './VideoPlaceholder';
 
@@ -54,6 +55,7 @@ const ProductSection: React.FC<ProductSectionProps> = ({
   bgColor,
 }) => {
   const isTextLeft = layout === 'text-left';
+  const isExternalHref = /^https?:\/\//.test(ctaHref);
 
   const textContent = (
     <motion.div
@@ -189,40 +191,75 @@ const ProductSection: React.FC<ProductSectionProps> = ({
 
       {/* CTA */}
       <div style={{ paddingTop: '4px' }}>
-        <a
-          href={ctaHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bcs-cta-primary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '14px 30px',
-            borderRadius: '100px',
-            background: accentColor,
-            color: '#FFFFFF',
-            fontFamily: 'var(--font-display)',
-            fontSize: '15px',
-            fontWeight: 600,
-            textDecoration: 'none',
-            letterSpacing: '-0.01em',
-            boxShadow: `0 2px 16px ${accentColor}30`,
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget).style.transform = 'translateY(-2px)';
-            (e.currentTarget).style.boxShadow = `0 6px 24px ${accentColor}40`;
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget).style.transform = 'translateY(0)';
-            (e.currentTarget).style.boxShadow = `0 2px 16px ${accentColor}30`;
-          }}
-        >
-          {ctaText}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </a>
+        {isExternalHref ? (
+          <a
+            href={ctaHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bcs-cta-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '14px 30px',
+              borderRadius: '100px',
+              background: accentColor,
+              color: '#FFFFFF',
+              fontFamily: 'var(--font-display)',
+              fontSize: '15px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              letterSpacing: '-0.01em',
+              boxShadow: `0 2px 16px ${accentColor}30`,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget).style.transform = 'translateY(-2px)';
+              (e.currentTarget).style.boxShadow = `0 6px 24px ${accentColor}40`;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget).style.transform = 'translateY(0)';
+              (e.currentTarget).style.boxShadow = `0 2px 16px ${accentColor}30`;
+            }}
+          >
+            {ctaText}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        ) : (
+          <Link
+            href={ctaHref}
+            className="bcs-cta-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '14px 30px',
+              borderRadius: '100px',
+              background: accentColor,
+              color: '#FFFFFF',
+              fontFamily: 'var(--font-display)',
+              fontSize: '15px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              letterSpacing: '-0.01em',
+              boxShadow: `0 2px 16px ${accentColor}30`,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget).style.transform = 'translateY(-2px)';
+              (e.currentTarget).style.boxShadow = `0 6px 24px ${accentColor}40`;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget).style.transform = 'translateY(0)';
+              (e.currentTarget).style.boxShadow = `0 2px 16px ${accentColor}30`;
+            }}
+          >
+            {ctaText}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        )}
       </div>
     </motion.div>
   );

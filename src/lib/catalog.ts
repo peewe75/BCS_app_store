@@ -1,4 +1,34 @@
 import { publicSupabase } from '@/src/lib/supabase/public';
+import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
+
+export interface AppLandingSection {
+  id: string;
+  title: string;
+  body: string;
+  bullets?: string[];
+}
+
+export interface AppLandingContent {
+  eyebrow?: string;
+  headline?: string;
+  subheadline?: string;
+  trustLine?: string;
+  primaryCtaLabel?: string;
+  secondaryCtaLabel?: string;
+  problemTitle?: string;
+  problemBody?: string;
+  sections?: AppLandingSection[];
+  benefitsTitle?: string;
+  benefits?: string[];
+  audienceTitle?: string;
+  audienceBody?: string;
+  pricingTitle?: string;
+  pricingLine?: string;
+  supportLine?: string;
+  closingHeadline?: string;
+  closingBody?: string;
+  finalCtaLabel?: string;
+}
 
 export interface AppRecord {
   id: string;
@@ -25,6 +55,7 @@ export interface AppRecord {
   is_active: boolean;
   is_coming_soon: boolean;
   created_at: string | null;
+  landing_content?: AppLandingContent | null;
 }
 
 export interface UserAppGrant {
@@ -51,8 +82,8 @@ const STATIC_APPS: AppRecord[] = [
     cta_text: 'Apri workspace',
     cta_href: null,
     is_internal: true,
-    internal_route: '/apps/ugc',
-    video_src: '/video/1.mp4',
+    internal_route: getAppWorkspaceRoute('ugc'),
+    video_src: '/video/UGC_video.mp4',
     poster_src: '/images/1.png',
     layout: 'text-left',
     sort_order: 1,
@@ -85,6 +116,72 @@ const STATIC_APPS: AppRecord[] = [
     is_active: true,
     is_coming_soon: false,
     created_at: null,
+    landing_content: {
+      eyebrow: "Piattaforma AI verticale per crisi d'impresa e sovraindebitamento",
+      headline: 'Gestisci fascicoli, documenti, giurisprudenza e atti in un unico sistema operativo',
+      subheadline:
+        'AI Crisi aiuta avvocati, OCC, advisor e studi multidisciplinari a organizzare il fascicolo, usare una knowledge base aggiornata e accelerare la redazione senza perdere controllo professionale.',
+      trustLine:
+        'Nessuna piattaforma generica. Un ambiente di lavoro costruito per procedure CCII e sovraindebitamento.',
+      primaryCtaLabel: 'Attiva la prova gratuita',
+      secondaryCtaLabel: 'Scopri le funzionalita',
+      problemTitle: "Il problema non e solo scrivere un atto. E governare tutto cio che viene prima.",
+      problemBody:
+        'Nella pratica quotidiana il tempo si disperde tra raccolta documenti, ricostruzione del fascicolo, ricerca di fonti e predisposizione delle prime bozze. AI Crisi riordina questo flusso in un sistema operativo verticale.',
+      sections: [
+        {
+          id: 'fascicolo',
+          title: 'Fascicolo digitale strutturato',
+          body:
+            'Ogni pratica nasce dentro un ambiente ordinato, con documenti classificati e una vista chiara dello stato del lavoro.',
+          bullets: [
+            'Raccolta documentale centralizzata per pratica.',
+            'Estrazione del testo dai documenti caricati.',
+            'Dashboard dedicata per stato del fascicolo e atti generati.',
+          ],
+        },
+        {
+          id: 'officina',
+          title: 'Officina Atti e base giuridica',
+          body:
+            'Il sistema combina documenti, fonti e conoscenza interna per accelerare la prima bozza di pareri, ricorsi, istanze e memorie.',
+          bullets: [
+            'Generazione assistita di atti e pareri legali.',
+            'Knowledge base vettoriale per normativa, giurisprudenza e template.',
+            'Aggiornamento automatico della base informativa nel tempo.',
+          ],
+        },
+        {
+          id: 'studio',
+          title: 'Controllo operativo di studio',
+          body:
+            'AI Crisi non sostituisce il professionista: rafforza il metodo di lavoro e rende piu stabile il patrimonio informativo condiviso.',
+          bullets: [
+            'Area admin per supervisione globale e standardizzazione.',
+            'Meno dispersione tra team, fascicoli e fonti.',
+            'Piu continuita tra istruttoria, strategia e output finali.',
+          ],
+        },
+      ],
+      benefitsTitle: 'Perche adottarla',
+      benefits: [
+        'Riduce il tempo dedicato alla ricostruzione del fascicolo.',
+        'Accelera la predisposizione della prima bozza degli atti.',
+        'Centralizza materiali, giurisprudenza e template in un unico sistema.',
+        'Aumenta il controllo del professionista sul processo e sul risultato.',
+      ],
+      audienceTitle: 'Per chi e pensata',
+      audienceBody:
+        'Per avvocati che seguono procedure CCII, OCC, advisor, commercialisti coinvolti nella regolazione della crisi e studi multidisciplinari che vogliono un metodo piu ordinato e scalabile.',
+      pricingTitle: 'Piano Pro',
+      pricingLine: '30 euro/mese con 14 giorni di prova gratuita',
+      supportLine:
+        'Il modo piu semplice per verificare su pratiche reali quanto una piattaforma verticale possa incidere su produttivita, ordine e qualita del lavoro.',
+      closingHeadline: 'Porta nel tuo studio un sistema di lavoro, non solo uno strumento di scrittura',
+      closingBody:
+        'AI Crisi trasforma documenti, fonti e bozze in un processo piu ordinato, piu veloce e piu controllabile.',
+      finalCtaLabel: 'Attiva la prova gratuita',
+    },
   },
   {
     id: 'trading',
@@ -103,7 +200,7 @@ const STATIC_APPS: AppRecord[] = [
     cta_text: 'Apri Trading',
     cta_href: null,
     is_internal: true,
-    internal_route: '/apps/trading',
+    internal_route: getAppWorkspaceRoute('trading'),
     video_src: '/video/3.mp4',
     poster_src: '/images/3.png',
     layout: 'text-left',
@@ -129,7 +226,7 @@ const STATIC_APPS: AppRecord[] = [
     cta_text: 'Apri Ravvedimento',
     cta_href: null,
     is_internal: true,
-    internal_route: '/apps/ravvedimento',
+    internal_route: getAppWorkspaceRoute('ravvedimento'),
     video_src: '/video/4.mp4',
     poster_src: '/images/4.png',
     layout: 'text-right',
@@ -155,7 +252,7 @@ const STATIC_APPS: AppRecord[] = [
     cta_text: 'Apri Forfettari AI',
     cta_href: null,
     is_internal: true,
-    internal_route: '/apps/forf',
+    internal_route: getAppWorkspaceRoute('forf'),
     video_src: '/video/ForfApp.mp4',
     poster_src: '/images/ForfApp.png',
     layout: 'text-left',
@@ -222,7 +319,7 @@ function normalizeApp(app: AppRecord): AppRecord {
   if (app.is_internal && !app.internal_route) {
     return {
       ...app,
-      internal_route: `/apps/${app.id}`,
+      internal_route: getAppWorkspaceRoute(app.id),
     };
   }
 

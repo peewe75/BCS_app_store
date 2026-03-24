@@ -71,6 +71,38 @@ img {
   overflow: hidden;
 }
 
+.bcs-app-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 40px;
+  align-items: center;
+}
+
+.bcs-app-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 28px;
+}
+
+.bcs-app-section-grid {
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+}
+
+.bcs-app-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 920px) {
+  .bcs-app-hero-grid,
+  .bcs-app-detail-grid,
+  .bcs-app-section-grid,
+  .bcs-app-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Toast animation */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
