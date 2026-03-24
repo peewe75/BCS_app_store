@@ -1,10 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SignIn } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import Logo from '../components/Logo';
 
 const Login: React.FC = () => {
+  const router = useRouter();
+  const { isLoaded, isSignedIn } = useUser();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   return (
     <div
       style={{
@@ -27,6 +38,7 @@ const Login: React.FC = () => {
         routing="path"
         path="/sign-in"
         forceRedirectUrl="/dashboard"
+        fallbackRedirectUrl="/dashboard"
         appearance={{
           variables: {
             colorPrimary: '#3713ec',
