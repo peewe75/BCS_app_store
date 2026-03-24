@@ -316,10 +316,26 @@ const STATIC_APPS: AppRecord[] = [
 ];
 
 function normalizeApp(app: AppRecord): AppRecord {
-  if (app.is_internal && !app.internal_route) {
+  if (app.is_internal) {
+    const expectedWorkspaceRoute = getAppWorkspaceRoute(app.id);
+
+    if (!app.internal_route || app.internal_route.startsWith('/apps/')) {
+      return {
+        ...app,
+        internal_route: expectedWorkspaceRoute,
+      };
+    }
+
     return {
       ...app,
-      internal_route: getAppWorkspaceRoute(app.id),
+      internal_route: app.internal_route,
+    };
+  }
+
+  if (!app.is_internal && app.internal_route) {
+    return {
+      ...app,
+      internal_route: null,
     };
   }
 
