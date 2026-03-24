@@ -31,6 +31,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
   const { isLoaded, isSignedIn, user } = useUser();
   const [grant, setGrant] = useState<UserAppGrant | null>(null);
   const [grantLoaded, setGrantLoaded] = useState(false);
+  const [videoLightbox, setVideoLightbox] = useState(false);
 
   const content = useMemo(() => getAppLandingContent(app), [app]);
   const sections = content.sections ?? [];
@@ -290,9 +291,10 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            style={{ display: 'flex', alignItems: 'center' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
           >
             <div
+              onClick={app.video_src ? () => setVideoLightbox(true) : undefined}
               style={{
                 width: '100%',
                 padding: 18,
@@ -300,7 +302,9 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
                 background: 'rgba(255,255,255,0.65)',
                 border: '1px solid rgba(255,255,255,0.6)',
                 boxShadow: '0 32px 80px rgba(15, 23, 42, 0.14)',
+                cursor: app.video_src ? 'zoom-in' : 'default',
               }}
+              title={app.video_src ? 'Clicca per ingrandire' : undefined}
             >
               <VideoPlaceholder
                 videoSrc={app.video_src ?? undefined}
@@ -309,6 +313,32 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
                 title={`Preview ${app.name}`}
               />
             </div>
+
+            {app.video_src && (
+              <a
+                href={app.video_src}
+                download
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '13px 20px',
+                  borderRadius: 14,
+                  background: accentColor,
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                  boxShadow: `0 4px 16px ${accentColor}33`,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M8 2v8M8 10l-3-3M8 10l3-3M2 13h12" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Scarica video demo
+              </a>
+            )}
           </motion.div>
         </div>
       </section>
@@ -520,6 +550,48 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
           </div>
         </div>
       </section>
+
+      {videoLightbox && app.video_src && (
+        <div
+          onClick={() => setVideoLightbox(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '82vw', maxWidth: 960,
+              borderRadius: 18, overflow: 'hidden',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.6)',
+            }}
+          >
+            <video
+              src={app.video_src}
+              controls
+              autoPlay
+              style={{ width: '100%', display: 'block' }}
+            />
+          </div>
+          <button
+            onClick={() => setVideoLightbox(false)}
+            style={{
+              position: 'absolute', top: 20, right: 20,
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: '#fff', borderRadius: '50%',
+              width: 40, height: 40, fontSize: 18,
+              cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </main>
   );
 }
