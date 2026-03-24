@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import { getPublicAppById, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
@@ -24,10 +25,12 @@ function isFreeApp(app: AppRecord) {
 export default function AppAccessPage({ slug }: { slug: string }) {
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
+  const searchParams = useSearchParams();
   const [app, setApp] = useState<AppRecord | null>(null);
   const [grant, setGrant] = useState<UserAppGrant | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [autoCheckoutStarted, setAutoCheckoutStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +91,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   }, [app, grant, isAdmin]);
 
   const handleCheckout = async () => {
-    if (!app) {
+    if (!app || checkoutLoading) {
       return;
     }
 
@@ -111,6 +114,26 @@ export default function AppAccessPage({ slug }: { slug: string }) {
       window.location.href = payload.url;
     }
   };
+
+  useEffect(() => {
+    const shouldAutoCheckout =
+      searchParams.get('checkout') === '1' &&
+      isSignedIn &&
+      !!app &&
+      !app.is_coming_soon &&
+      !isFreeApp(app) &&
+      !hasAccess &&
+      !loading &&
+      !checkoutLoading &&
+      !autoCheckoutStarted;
+
+    if (!shouldAutoCheckout) {
+      return;
+    }
+
+    setAutoCheckoutStarted(true);
+    void handleCheckout();
+  }, [app, autoCheckoutStarted, checkoutLoading, hasAccess, isSignedIn, loading, searchParams]);
 
   if (!isLoaded || loading) {
     return <div style={{ padding: '120px 24px', textAlign: 'center' }}>Caricamento modulo...</div>;

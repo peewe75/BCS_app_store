@@ -7,7 +7,7 @@ import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
-import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
+import { getAppPublicRoute, getAppWorkspaceRoute } from '@/src/lib/app-routes';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -35,9 +35,14 @@ function formatDate(date?: Date | null): string {
   return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function getAppHref(app: AppRecord) {
+function isFreeApp(app: AppRecord) {
+  return app.pricing_model === 'free' || app.id === 'forf';
+}
+
+function getAppPrimaryHref(app: AppRecord, hasAccess: boolean) {
   if (app.is_internal) {
-    return app.internal_route ?? getAppWorkspaceRoute(app);
+    const workspaceHref = app.internal_route ?? getAppWorkspaceRoute(app);
+    return hasAccess || isFreeApp(app) ? workspaceHref : `${workspaceHref}?checkout=1`;
   }
 
   return app.cta_href ?? '#';
@@ -133,7 +138,12 @@ export default function UserDashboard() {
   };
 
   const handleOpenApp = (app: AppRecord) => {
-    const href = getAppHref(app);
+    const hasAccess =
+      isAdmin ||
+      isFreeApp(app) ||
+      Boolean(unlockedApps[app.id]);
+    const href = getAppPrimaryHref(app, hasAccess);
+
     if (app.is_internal) {
       router.push(href);
       return;
@@ -353,9 +363,9 @@ export default function UserDashboard() {
               const accentColor = app.accent_color ?? '#3713ec';
               const isUnlocked =
                 isAdmin ||
-                app.pricing_model === 'free' ||
-                app.id === 'forf' ||
+                isFreeApp(app) ||
                 Boolean(unlockedApps[app.id]);
+              const detailHref = getAppPublicRoute(app);
               const badge = app.is_coming_soon
                 ? 'Prossimamente'
                 : isUnlocked
@@ -368,13 +378,10 @@ export default function UserDashboard() {
                   : 'Richiede acquisto o grant';
 
               return (
-                <motion.button
+                <motion.div
                   key={app.id}
-                  type="button"
                   variants={fadeUp}
-                  onClick={() => handleOpenApp(app)}
                   whileHover={app.is_coming_soon ? undefined : { y: -4, boxShadow: `0 20px 48px ${accentColor}22` }}
-                  whileTap={app.is_coming_soon ? undefined : { scale: 0.98 }}
                   style={{
                     background: '#FFFFFF',
                     borderRadius: '24px',
@@ -383,7 +390,6 @@ export default function UserDashboard() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '20px',
-                    cursor: app.is_coming_soon ? 'default' : 'pointer',
                     transition: 'box-shadow 0.3s ease',
                     textAlign: 'left',
                     opacity: app.is_coming_soon ? 0.72 : 1,
@@ -434,10 +440,48 @@ export default function UserDashboard() {
                     </p>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: accentColor, fontSize: '14px', fontWeight: 600, marginTop: 'auto' }}>
-                    {app.is_coming_soon ? 'In arrivo' : app.is_internal ? 'Apri workspace' : 'Apri app esterna'}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: 'auto' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenApp(app)}
+                      disabled={app.is_coming_soon}
+                      style={{
+                        border: 'none',
+                        borderRadius: 999,
+                        background: app.is_coming_soon ? 'rgba(0,0,0,0.05)' : accentColor,
+                        color: app.is_coming_soon ? '#9ca3af' : '#fff',
+                        padding: '12px 18px',
+                        fontWeight: 700,
+                        cursor: app.is_coming_soon ? 'default' : 'pointer',
+                      }}
+                    >
+                      {app.is_coming_soon
+                        ? 'In arrivo'
+                        : isUnlocked
+                          ? app.is_internal
+                            ? 'Apri app'
+                            : 'Apri app esterna'
+                          : 'Vai al pagamento'}
+                    </button>
+                    <Link
+                      href={detailHref}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 999,
+                        padding: '12px 18px',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        color: accentColor,
+                        border: `1px solid ${accentColor}30`,
+                        background: `${accentColor}10`,
+                      }}
+                    >
+                      Scopri di piu
+                    </Link>
                   </div>
-                </motion.button>
+                </motion.div>
               );
             })}
         </motion.div>
