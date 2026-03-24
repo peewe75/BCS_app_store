@@ -315,7 +315,7 @@ const STATIC_APPS: AppRecord[] = [
   },
 ];
 
-function normalizeApp(app: AppRecord): AppRecord {
+export function normalizeApp(app: AppRecord): AppRecord {
   if (app.is_internal) {
     const expectedWorkspaceRoute = getAppWorkspaceRoute(app.id);
 

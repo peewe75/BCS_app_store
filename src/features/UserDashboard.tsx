@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
-import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
+import { normalizeApp, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
 import { getAppPublicRoute, getAppWorkspaceRoute } from '@/src/lib/app-routes';
 
 const stagger = {
@@ -115,7 +115,8 @@ export default function UserDashboard() {
         setUserApps([]);
         setLoadError('Non sono riuscito a leggere il catalogo apps da Supabase.');
       } else {
-        setApps((appsResult.data as AppRecord[] | null) ?? []);
+        const normalizedApps = ((appsResult.data as AppRecord[] | null) ?? []).map(normalizeApp);
+        setApps(normalizedApps);
         setUserApps((userAppsResult.data as UserAppGrant[] | null) ?? []);
 
         if (userAppsResult.error) {
