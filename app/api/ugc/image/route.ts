@@ -21,11 +21,10 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Speed mode uses gemini-2.5-flash-preview-image-generation
-    // Quality mode uses imagen-3.0-generate-002 (most stable available)
+    // Google image generation currently uses Gemini 2.5 Flash Image.
     const modelName = body.mode === 'quality'
-      ? 'gemini-2.5-flash-preview-image-generation'
-      : 'gemini-2.5-flash-preview-image-generation';
+      ? 'gemini-2.5-flash-image'
+      : 'gemini-2.5-flash-image';
 
     const parts: { inlineData?: { mimeType: 'image/png'; data: string }; text?: string }[] = [];
 
