@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth, useClerk, useUser } from '@clerk/nextjs';
+import { useAuth, useUser, UserButton } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import { normalizeApp, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
@@ -51,7 +51,6 @@ function getAppPrimaryHref(app: AppRecord, hasAccess: boolean) {
 export default function UserDashboard() {
   const router = useRouter();
   const { getToken } = useAuth();
-  const { signOut } = useClerk();
   const { user } = useUser();
   const [apps, setApps] = useState<AppRecord[]>([]);
   const [userApps, setUserApps] = useState<UserAppGrant[]>([]);
@@ -134,9 +133,6 @@ export default function UserDashboard() {
     };
   }, [getToken, user?.id]);
 
-  const handleLogout = async () => {
-    await signOut({ redirectUrl: '/' });
-  };
 
   const handleOpenApp = (app: AppRecord) => {
     const hasAccess =
@@ -211,7 +207,7 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {isAdmin && (
               <Link
                 href="/admin"
@@ -229,21 +225,12 @@ export default function UserDashboard() {
                 Admin
               </Link>
             )}
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '100px',
-                background: 'transparent',
-                color: '#6E6E73',
-                border: '1px solid rgba(0,0,0,0.15)',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: { avatarBox: { width: 38, height: 38 } },
               }}
-            >
-              Esci
-            </button>
+            />
           </div>
         </motion.header>
 
@@ -262,25 +249,25 @@ export default function UserDashboard() {
             {
               label: 'Piano attivo',
               value: isAdmin ? 'Admin' : 'User',
-              sub: isAdmin ? 'Accesso completo' : 'Autenticazione Clerk unificata',
+              sub: isAdmin ? 'Accesso completo' : 'Accesso standard',
               color: isAdmin ? '#3713ec' : '#10b981',
             },
             {
               label: 'Membro dal',
               value: memberSince,
-              sub: 'Data registrazione',
+              sub: 'Data di registrazione',
               color: '#6E6E73',
             },
             {
               label: 'App disponibili',
               value: String(apps.length),
-              sub: isLoadingApps ? 'Sincronizzazione in corso' : 'Catalogo Supabase',
+              sub: isLoadingApps ? 'Caricamento…' : 'Nel catalogo',
               color: '#ec4899',
             },
             {
               label: 'Accessi personali',
               value: String(userApps.length),
-              sub: 'Lettura protetta via RLS',
+              sub: 'App nel tuo piano',
               color: '#3b82f6',
             },
           ].map((stat) => (
@@ -312,7 +299,7 @@ export default function UserDashboard() {
             Le tue app
           </h2>
           <p style={{ fontSize: '15px', color: '#6E6E73', margin: '0 0 28px', fontWeight: 400 }}>
-            Catalogo letto da Supabase. Gli accessi personali arrivano da Clerk tramite RLS e Stripe aggiorna `user_apps`.
+            Tutti gli strumenti disponibili nel tuo piano. Clicca su un&apos;app per aprirla o scoprire i dettagli.
           </p>
         </div>
 
@@ -338,7 +325,7 @@ export default function UserDashboard() {
                 color: '#6E6E73',
               }}
             >
-              Sincronizzo il catalogo con Supabase...
+              Caricamento in corso…
             </motion.div>
           )}
 
@@ -453,6 +440,7 @@ export default function UserDashboard() {
                         color: app.is_coming_soon ? '#9ca3af' : '#fff',
                         padding: '12px 18px',
                         fontWeight: 700,
+                        fontSize: '14px',
                         cursor: app.is_coming_soon ? 'default' : 'pointer',
                       }}
                     >
@@ -461,26 +449,9 @@ export default function UserDashboard() {
                         : isUnlocked
                           ? app.is_internal
                             ? 'Apri app'
-                            : 'Apri app esterna'
+                            : 'Apri app'
                           : 'Vai al pagamento'}
                     </button>
-                    <Link
-                      href={detailHref}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 999,
-                        padding: '12px 18px',
-                        textDecoration: 'none',
-                        fontWeight: 700,
-                        color: accentColor,
-                        border: `1px solid ${accentColor}30`,
-                        background: `${accentColor}10`,
-                      }}
-                    >
-                      Scopri di piu
-                    </Link>
                   </div>
                 </motion.div>
               );

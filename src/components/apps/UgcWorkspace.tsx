@@ -13,6 +13,7 @@ import {
 } from '@/src/apps/ugc/constants';
 
 export default function UgcWorkspace() {
+  const [lightbox, setLightbox] = useState<{ src: string; type: 'image' | 'video' } | null>(null);
   const [currentStage, setCurrentStage] = useState<WorkflowStage>(WorkflowStage.IDLE);
   const [data, setData] = useState<GenerationResult>({
     productImages: [],
@@ -238,6 +239,7 @@ export default function UgcWorkspace() {
   };
 
   return (
+    <>
     <ConfigurationScreen
       productImages={data.productImages}
       onUpload={handleFileUpload}
@@ -329,7 +331,13 @@ export default function UgcWorkspace() {
               {data.generatedImage && (
                 <>
                   <div className="media-container">
-                    <img src={data.generatedImage} alt="Generated Asset" />
+                    <img
+                      src={data.generatedImage}
+                      alt="Generated Asset"
+                      onClick={() => setLightbox({ src: data.generatedImage!, type: 'image' })}
+                      style={{ cursor: 'zoom-in' }}
+                      title="Clicca per ingrandire"
+                    />
                     <button className="download-btn" onClick={handleDownloadImage} title="Download">
                       ↓
                     </button>
@@ -406,13 +414,49 @@ export default function UgcWorkspace() {
 
               {data.videoUrl && (
                 <>
-                  <div className="media-container">
-                    <video src={data.videoUrl} controls autoPlay loop />
+                  <div className="media-container" style={{ position: 'relative' }}>
+                    <video
+                      src={data.videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      onClick={() => setLightbox({ src: data.videoUrl!, type: 'video' })}
+                      style={{ cursor: 'zoom-in' }}
+                      title="Clicca per ingrandire"
+                    />
                     <button className="download-btn" onClick={handleDownloadVideo} title="Download Video">
                       ↓
                     </button>
                   </div>
-                  <div className="action-row">
+
+                  {/* Download button visibile */}
+                  <button
+                    onClick={handleDownloadVideo}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      width: '100%',
+                      padding: '14px 20px',
+                      marginTop: 12,
+                      borderRadius: 12,
+                      background: 'linear-gradient(135deg, #8A2BE2, #6d22b3)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(138,43,226,0.35)',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                      <path d="M9 2v9M9 11l-3-3M9 11l3-3M3 14h12" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Scarica Video UGC
+                  </button>
+
+                  <div className="action-row" style={{ marginTop: 10 }}>
                     <button className="btn-secondary" onClick={handleRetryVideo} style={{ flex: 1, borderColor: '#8A2BE2', color: '#8A2BE2' }}>
                       Rigenera
                     </button>
@@ -440,5 +484,61 @@ export default function UgcWorkspace() {
         </div>
       )}
     </ConfigurationScreen>
+
+    {/* Lightbox overlay */}
+    {lightbox && (
+      <div
+        onClick={() => setLightbox(null)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'zoom-out',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '80vw',
+            maxWidth: 860,
+            borderRadius: 16,
+            overflow: 'hidden',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+          }}
+        >
+          {lightbox.type === 'image' ? (
+            <img src={lightbox.src} alt="Anteprima ingrandita" style={{ width: '100%', display: 'block' }} />
+          ) : (
+            <video src={lightbox.src} controls autoPlay style={{ width: '100%', display: 'block' }} />
+          )}
+        </div>
+        <button
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: '#fff',
+            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            fontSize: 18,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          ✕
+        </button>
+      </div>
+    )}
+    </>
   );
 }
