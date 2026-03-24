@@ -468,7 +468,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+          className="w-full min-h-[56px] bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-amber-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
         >
           {loading ? (
             <>
@@ -482,7 +482,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ onCalculationComplete })
             'Calcola il Netto'
           )}
         </button>
-        <p className="text-center text-xs text-slate-400">Cliccando accetti la privacy policy dello studio.</p>
+        <p className="text-center text-xs text-slate-500 font-medium">
+          Cliccando accetti la privacy policy dello studio.
+        </p>
       </form>
     </div>
   );
