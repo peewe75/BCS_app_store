@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/api/trading/upload/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
