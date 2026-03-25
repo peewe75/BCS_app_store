@@ -452,6 +452,25 @@ export default function UserDashboard() {
                             : 'Apri app'
                           : 'Vai al pagamento'}
                     </button>
+                    {!app.is_coming_soon && (
+                      <Link
+                        href={`/apps/${app.id}`}
+                        style={{
+                          border: '1px solid rgba(0,0,0,0.1)',
+                          borderRadius: 999,
+                          background: 'transparent',
+                          color: '#6b7280',
+                          padding: '12px 16px',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Dettagli
+                      </Link>
+                    )}
                   </div>
                 </motion.div>
               );
