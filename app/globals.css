@@ -201,12 +201,39 @@ img {
 
 .ugc-workspace .dimension-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .ugc-workspace .input-box {
-  background-color: var(--bg-light-gray); border: none; padding: 12px; border-radius: 16px;
-  font-weight: 500; text-align: center; width: 100%;
+  background-color: #fff;
+  border: 1.5px solid #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.ugc-workspace .input-box:focus {
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(138,43,226,0.12);
 }
 .ugc-workspace .select-box {
-  background-color: var(--bg-light-gray); border: none; padding: 12px; border-radius: 16px;
-  font-weight: 500; appearance: none; width: 100%;
+  background-color: #fff;
+  border: 1.5px solid #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A2BE2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.ugc-workspace .select-box:focus {
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(138,43,226,0.12);
 }
 
 .ugc-workspace .pills-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
@@ -220,8 +247,24 @@ img {
 }
 
 .ugc-workspace .select-full {
-  width: 100%; background-color: var(--bg-light-gray); border: none; padding: 16px;
-  border-radius: 16px; font-weight: 500; appearance: none;
+  width: 100%;
+  background-color: #fff;
+  border: 1.5px solid #e2e8f0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A2BE2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.ugc-workspace .select-full:focus {
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(138,43,226,0.12);
 }
 
 .ugc-workspace .style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
