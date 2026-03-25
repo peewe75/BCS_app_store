@@ -36,6 +36,7 @@ export function ReportsTable({ highlightId, onSelectTaxForm }: ReportsTableProps
   const { getToken, userId } = useAuth()
   const [reports, setReports] = useState<ReportRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const loadReports = useCallback(async () => {
     if (!userId) return
@@ -65,6 +66,17 @@ export function ReportsTable({ highlightId, onSelectTaxForm }: ReportsTableProps
     }, 3000)
     return () => window.clearInterval(timer)
   }, [hasProcessing, loadReports])
+
+  const handleDelete = useCallback(async (reportId: string) => {
+    if (!window.confirm('Eliminare questo report? L\'azione è irreversibile.')) return
+    setDeletingId(reportId)
+    const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase
+    if (client) {
+      await client.from('trading_reports').delete().eq('id', reportId).eq('user_id', userId!)
+      setReports(prev => prev.filter(r => r.id !== reportId))
+    }
+    setDeletingId(null)
+  }, [getToken, userId])
 
   const card: React.CSSProperties = { padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }
   const accent = '#10b981'
@@ -135,43 +147,65 @@ export function ReportsTable({ highlightId, onSelectTaxForm }: ReportsTableProps
                     </span>
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
-                    {report.status === 'ready' ? (
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                        <a
-                          href={`/api/trading/reports/${report.id}/download`}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 100,
-                            background: '#F5F5F7',
-                            color: '#333',
-                            border: '1px solid rgba(0,0,0,0.08)',
-                            fontWeight: 600,
-                            fontSize: 12,
-                            textDecoration: 'none',
-                          }}
-                        >
-                          PDF
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => onSelectTaxForm?.(report.id)}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 100,
-                            background: accent,
-                            color: '#fff',
-                            border: 'none',
-                            fontWeight: 600,
-                            fontSize: 12,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          RW/RT
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>In attesa</span>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {report.status === 'ready' && (
+                        <>
+                          <a
+                            href={`/api/trading/reports/${report.id}/download`}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 100,
+                              background: '#F5F5F7',
+                              color: '#333',
+                              border: '1px solid rgba(0,0,0,0.08)',
+                              fontWeight: 600,
+                              fontSize: 12,
+                              textDecoration: 'none',
+                            }}
+                          >
+                            PDF
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => onSelectTaxForm?.(report.id)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: 100,
+                              background: accent,
+                              color: '#fff',
+                              border: 'none',
+                              fontWeight: 600,
+                              fontSize: 12,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            RW/RT
+                          </button>
+                        </>
+                      )}
+                      {report.status !== 'ready' && (
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>In attesa</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(report.id)}
+                        disabled={deletingId === report.id}
+                        title="Elimina report"
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 100,
+                          background: '#FEE2E2',
+                          color: '#991B1B',
+                          border: 'none',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: deletingId === report.id ? 'wait' : 'pointer',
+                          opacity: deletingId === report.id ? 0.5 : 1,
+                        }}
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
