@@ -316,7 +316,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
 
             {app.video_src && (
               <a
-                href={app.video_src}
+                href={app.id === 'ugc' ? '/video/ugc-video.mp4' : app.video_src}
                 download={app.id === 'ugc' ? 'ugc-video.mp4' : undefined}
                 style={{
                   display: 'flex',
