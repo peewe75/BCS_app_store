@@ -83,7 +83,7 @@ const STATIC_APPS: AppRecord[] = [
     cta_href: null,
     is_internal: true,
     internal_route: getAppWorkspaceRoute('ugc'),
-    video_src: '/video/UGC_video.mp4',
+    video_src: '/video/ugc-video.mp4',
     poster_src: '/images/1.png',
     layout: 'text-left',
     sort_order: 1,
