@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface VideoPlaceholderProps {
@@ -18,6 +18,11 @@ const VideoPlaceholder: React.FC<VideoPlaceholderProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) v.play().catch(() => {});
+  }, [videoSrc]);
 
   const glowStyle = isHovered
     ? { boxShadow: `0 20px 60px ${accentColor}33, 0 8px 32px rgba(0,0,0,0.2)` }
