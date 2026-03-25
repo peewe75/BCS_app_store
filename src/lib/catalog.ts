@@ -201,7 +201,7 @@ const STATIC_APPS: AppRecord[] = [
     cta_href: null,
     is_internal: true,
     internal_route: getAppWorkspaceRoute('trading'),
-    video_src: '/video/3.mp4',
+    video_src: '/video/trading_fiscale.mp4',
     poster_src: '/images/3.png',
     layout: 'text-left',
     sort_order: 3,

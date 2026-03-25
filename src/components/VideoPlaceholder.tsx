@@ -52,7 +52,6 @@ const VideoPlaceholder: React.FC<VideoPlaceholderProps> = ({
         <video
           ref={videoRef}
           src={videoSrc}
-          poster={posterSrc}
           autoPlay
           muted
           loop
