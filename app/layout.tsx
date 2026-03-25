@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
 import { env } from '@/src/lib/env';
 import { SiteHeader } from '@/src/components/site/SiteHeader';
@@ -44,10 +45,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: 'window.gtag=window.gtag||function(){};' }} />
-      </head>
       <body>
+        <Script id="gtag-shim" strategy="beforeInteractive">{`window.gtag=window.gtag||function(){}`}</Script>
         {env.clerkPublishableKey ? (
           <ClerkProvider publishableKey={env.clerkPublishableKey}>
             <SiteHeader />

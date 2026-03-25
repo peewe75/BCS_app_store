@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ reportId: report.id })
   } catch (err) {
+    console.error('[trading/upload] elaborazione fallita:', err)
     await supabase.from('trading_reports').update({ status: 'error' }).eq('id', report.id)
 
     return NextResponse.json(
