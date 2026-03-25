@@ -43,8 +43,19 @@ export function ConfigurationScreen(props: ConfigurationScreenProps) {
   return (
     <div className="ugc-workspace">
       <div className="container">
-        <div className="hero-card">
-          <div className="hero-text">
+        <div className="hero-card" style={{ position: 'relative', overflow: 'hidden' }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', opacity: 0.55,
+            }}
+            src="/video/testata_UGC.mp4"
+          />
+          <div className="hero-text" style={{ position: 'relative', zIndex: 1 }}>
             <h2>UGC Ad Creator</h2>
             <p>Powered by BCS AI · Gemini + Veo</p>
           </div>
