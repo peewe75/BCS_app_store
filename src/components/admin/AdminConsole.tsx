@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { RequireAuth } from '@/src/components/auth/RequireAuth';
 import AppFormModal, { type AppFormData } from './AppFormModal';
-import { APP_PLAN_CONFIG, type PlanTier } from '@/src/lib/catalog';
+import { APP_PLAN_CONFIG, type PlanTier, type LimitKey } from '@/src/lib/catalog';
 
 /* ─── Types ─── */
 
@@ -53,7 +53,7 @@ type PaymentEvent = {
   processed_at: string | null;
 };
 
-type Tab = 'overview' | 'users' | 'payments' | 'hub' | 'apps';
+type Tab = 'overview' | 'users' | 'payments' | 'hub' | 'apps' | 'codes';
 
 type DbPlanRow = {
   app_id: string;
@@ -63,6 +63,20 @@ type DbPlanRow = {
   grant_plan: string | null;
   features: string[] | null;
   is_active: boolean | null;
+  limits: Record<string, unknown> | null;
+  trial_days: number | null;
+};
+
+type AccessCode = {
+  code: string;
+  app_id: string;
+  plan: string;
+  max_uses: number;
+  uses_count: number;
+  duration_days: number | null;
+  valid_until: string | null;
+  created_at: string | null;
+  is_active: boolean;
 };
 
 /* ─── Helpers ─── */
@@ -162,8 +176,21 @@ function AdminConsoleContent() {
   const [planConfigApp, setPlanConfigApp] = useState<FullApp | null>(null);
   const [dbPlans, setDbPlans] = useState<DbPlanRow[]>([]);
   const [editingFeatures, setEditingFeatures] = useState<Record<string, string[]>>({});
+  const [editingLimits, setEditingLimits] = useState<Record<string, Record<string, unknown>>>({});
+  const [editingTrialDays, setEditingTrialDays] = useState<Record<string, number>>({});
   const [newFeatureInput, setNewFeatureInput] = useState<Record<string, string>>({});
   const [featuresSaving, setFeaturesSaving] = useState<string | null>(null);
+
+  // Access codes state
+  const [codesData, setCodesData] = useState<AccessCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
+  const [newCode, setNewCode] = useState({ code: '', app_id: '', plan: '', max_uses: 1, duration_days: '', valid_until: '' });
+  const [codeSaving, setCodeSaving] = useState(false);
+
+  // UGC credits state (for user modal)
+  const [ugcCredits, setUgcCredits] = useState<number | null>(null);
+  const [ugcCreditsInput, setUgcCreditsInput] = useState('');
+  const [ugcCreditsSaving, setUgcCreditsSaving] = useState(false);
 
   // Load overview
   useEffect(() => {
@@ -220,17 +247,32 @@ function AdminConsoleContent() {
     }
   }, []);
 
+  // Load access codes
+  const loadCodes = useCallback(async () => {
+    setCodesLoading(true);
+    try {
+      const res = await fetch('/api/admin/access-codes', { cache: 'no-store' });
+      const json = await res.json();
+      if (res.ok && json.codes) setCodesData(json.codes as AccessCode[]);
+    } catch { /* silent */ } finally {
+      setCodesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (tab === 'apps' || tab === 'hub') void loadApps();
     if (tab === 'users') void loadUsers();
     if (tab === 'payments') void loadPayments();
-  }, [tab, loadApps, loadUsers, loadPayments]);
+    if (tab === 'codes') void loadCodes();
+  }, [tab, loadApps, loadUsers, loadPayments, loadCodes]);
 
   // Load plan features from DB for a given app
   const loadPlanFeatures = useCallback(async (app: FullApp) => {
     setPlanConfigApp(app);
     setDbPlans([]);
     setEditingFeatures({});
+    setEditingLimits({});
+    setEditingTrialDays({});
     setNewFeatureInput({});
     try {
       const res = await fetch(`/api/admin/plan-features?app_id=${app.id}`, { cache: 'no-store' });
@@ -239,10 +281,16 @@ function AdminConsoleContent() {
         const rows = json.plans as DbPlanRow[];
         setDbPlans(rows);
         const feats: Record<string, string[]> = {};
+        const lims: Record<string, Record<string, unknown>> = {};
+        const trials: Record<string, number> = {};
         for (const row of rows) {
           feats[row.plan_code] = row.features ?? [];
+          lims[row.plan_code] = row.limits ?? {};
+          trials[row.plan_code] = row.trial_days ?? 0;
         }
         setEditingFeatures(feats);
+        setEditingLimits(lims);
+        setEditingTrialDays(trials);
       }
     } catch { /* silent */ }
   }, []);
@@ -252,10 +300,12 @@ function AdminConsoleContent() {
     setFeaturesSaving(planCode);
     try {
       const features = editingFeatures[planCode] ?? [];
+      const limits = editingLimits[planCode] ?? {};
+      const trial_days = editingTrialDays[planCode] ?? 0;
       const res = await fetch('/api/admin/plan-features', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_id: appId, plan_code: planCode, features }),
+        body: JSON.stringify({ app_id: appId, plan_code: planCode, features, limits, trial_days }),
       });
       if (res.ok) {
         setToastMsg(`Piano "${planCode}" aggiornato.`);
@@ -266,7 +316,7 @@ function AdminConsoleContent() {
     } catch { setToastMsg('Errore di rete.'); } finally {
       setFeaturesSaving(null);
     }
-  }, [editingFeatures]);
+  }, [editingFeatures, editingLimits, editingTrialDays]);
 
   // Toast auto-dismiss
   useEffect(() => {
@@ -425,6 +475,7 @@ function AdminConsoleContent() {
         <button style={tabStyle(tab === 'payments')} onClick={() => setTab('payments')}>💳 Pagamenti</button>
         <button style={tabStyle(tab === 'hub')} onClick={() => setTab('hub')}>🔗 App Hub</button>
         <button style={tabStyle(tab === 'apps')} onClick={() => setTab('apps')}>⚙️ Gestione App</button>
+        <button style={tabStyle(tab === 'codes')} onClick={() => setTab('codes')}>🎟️ Codici</button>
       </nav>
 
       {/* ─── Tab: Overview ─── */}
@@ -628,8 +679,73 @@ function AdminConsoleContent() {
                   })}
                 </div>
 
+                {/* UGC Credits section */}
+                {APP_PLAN_CONFIG['ugc'] && (
+                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                    <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Crediti UGC</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 14, color: '#1D1D1F', fontWeight: 600 }}>
+                        Crediti attuali: {ugcCredits === null ? '—' : ugcCredits}
+                      </span>
+                      {ugcCredits === null && (
+                        <button
+                          style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: '#F5F5F7', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                          onClick={() => {
+                            void (async () => {
+                              const res = await fetch(`/api/user/credits?app_id=ugc`);
+                              const json = await res.json();
+                              setUgcCredits((json.credits as number | undefined) ?? 0);
+                            })();
+                          }}
+                        >
+                          Carica
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <input
+                        type="number"
+                        value={ugcCreditsInput}
+                        onChange={(e) => setUgcCreditsInput(e.target.value)}
+                        placeholder="Delta (es. 10)"
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13 }}
+                      />
+                      <button
+                        disabled={ugcCreditsSaving || !ugcCreditsInput}
+                        onClick={() => {
+                          void (async () => {
+                            setUgcCreditsSaving(true);
+                            const res = await fetch('/api/admin/credits', {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ user_id: selectedUser.id, app_id: 'ugc', delta: Number(ugcCreditsInput) }),
+                            });
+                            const json = await res.json();
+                            if (res.ok) {
+                              setUgcCredits((json.credits as number | undefined) ?? 0);
+                              setUgcCreditsInput('');
+                              setToastMsg('Crediti UGC aggiornati.');
+                            } else {
+                              setToastMsg(`Errore: ${(json as { error?: string }).error ?? 'Salvataggio fallito'}`);
+                            }
+                            setUgcCreditsSaving(false);
+                          })();
+                        }}
+                        style={{
+                          padding: '8px 16px', borderRadius: 10, border: 'none',
+                          background: accent, color: '#fff', fontWeight: 700, fontSize: 13,
+                          cursor: ugcCreditsSaving ? 'default' : 'pointer',
+                          opacity: ugcCreditsSaving ? 0.7 : 1,
+                        }}
+                      >
+                        {ugcCreditsSaving ? '…' : 'Aggiungi'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => setSelectedUser(null)}
+                  onClick={() => { setSelectedUser(null); setUgcCredits(null); setUgcCreditsInput(''); }}
                   style={{
                     marginTop: 24, width: '100%', padding: '14px',
                     borderRadius: 14, border: 'none', background: '#F5F5F7',
@@ -955,6 +1071,191 @@ function AdminConsoleContent() {
         </>
       )}
 
+      {/* ─── Tab: Codici ─── */}
+      {tab === 'codes' && (
+        <>
+          <section style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-display)' }}>Codici di Accesso</h2>
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6E6E73' }}>
+                Crea e gestisci codici di accesso per le app della suite.
+              </p>
+            </div>
+            <button
+              onClick={() => void loadCodes()}
+              style={{ padding: '10px 18px', borderRadius: 100, background: '#F5F5F7', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: '#444' }}
+            >
+              ↺ Ricarica
+            </button>
+          </section>
+
+          {/* Create code form */}
+          <section style={{ ...card }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Crea nuovo codice</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>Codice</label>
+                <input
+                  type="text"
+                  value={newCode.code}
+                  onChange={(e) => setNewCode((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  placeholder="Lascia vuoto per auto-generare"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>App</label>
+                <select
+                  value={newCode.app_id}
+                  onChange={(e) => setNewCode((p) => ({ ...p, app_id: e.target.value, plan: '' }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+                >
+                  <option value="">Seleziona app</option>
+                  {Object.keys(APP_PLAN_CONFIG).map((id) => (
+                    <option key={id} value={id}>{id}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>Piano</label>
+                <select
+                  value={newCode.plan}
+                  onChange={(e) => setNewCode((p) => ({ ...p, plan: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+                >
+                  <option value="">Seleziona piano</option>
+                  {(APP_PLAN_CONFIG[newCode.app_id]?.plans ?? []).map((p) => (
+                    <option key={p.code} value={p.code}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>Max utilizzi</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={newCode.max_uses}
+                  onChange={(e) => setNewCode((p) => ({ ...p, max_uses: Number(e.target.value) }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>Durata accesso (giorni, vuoto = permanente)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={newCode.duration_days}
+                  onChange={(e) => setNewCode((p) => ({ ...p, duration_days: e.target.value }))}
+                  placeholder="Permanente"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block', marginBottom: 4 }}>Il codice scade il (opzionale)</label>
+                <input
+                  type="date"
+                  value={newCode.valid_until}
+                  onChange={(e) => setNewCode((p) => ({ ...p, valid_until: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <button
+              disabled={codeSaving || !newCode.app_id || !newCode.plan}
+              onClick={() => {
+                void (async () => {
+                  setCodeSaving(true);
+                  const body: Record<string, unknown> = {
+                    app_id: newCode.app_id,
+                    plan: newCode.plan,
+                    max_uses: newCode.max_uses,
+                  };
+                  if (newCode.code.trim()) body.code = newCode.code.trim();
+                  if (newCode.duration_days) body.duration_days = Number(newCode.duration_days);
+                  if (newCode.valid_until) body.valid_until = newCode.valid_until;
+                  const res = await fetch('/api/admin/access-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                  });
+                  const json = await res.json();
+                  if (res.ok) {
+                    setToastMsg(`Codice "${(json as { code: string }).code}" creato!`);
+                    setNewCode({ code: '', app_id: '', plan: '', max_uses: 1, duration_days: '', valid_until: '' });
+                    await loadCodes();
+                  } else {
+                    setToastMsg(`Errore: ${(json as { error?: string }).error ?? 'Creazione fallita'}`);
+                  }
+                  setCodeSaving(false);
+                })();
+              }}
+              style={{
+                marginTop: 16, padding: '12px 28px', borderRadius: 100,
+                background: codeSaving ? '#999' : accent, color: '#fff', border: 'none',
+                fontWeight: 700, fontSize: 14, cursor: codeSaving ? 'default' : 'pointer',
+              }}
+            >
+              {codeSaving ? 'Creazione…' : 'Crea Codice'}
+            </button>
+          </section>
+
+          {/* Codes table */}
+          {codesLoading ? (
+            <div style={{ textAlign: 'center', padding: 48, color: '#999' }}>Caricamento codici...</div>
+          ) : codesData.length === 0 ? (
+            <div style={{ ...card, textAlign: 'center', padding: 48, color: '#999' }}>Nessun codice trovato.</div>
+          ) : (
+            <section style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 120px 80px 80px', gap: 12, padding: '8px 20px', fontSize: 11, color: '#999', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                <span>Codice</span><span>App</span><span>Piano</span><span>Usi</span><span>Durata</span><span>Scadenza cod.</span><span>Stato</span><span style={{ textAlign: 'right' }}>Azioni</span>
+              </div>
+              {codesData.map((c) => (
+                <article key={c.code} style={{ ...card, borderRadius: 16, padding: '12px 20px', display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 120px 80px 80px', gap: 12, alignItems: 'center', opacity: c.is_active ? 1 : 0.5 }}>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, letterSpacing: '0.05em' }}>{c.code}</span>
+                  <span style={{ fontSize: 13 }}>{c.app_id}</span>
+                  <span style={{ fontSize: 13 }}>{c.plan}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{c.uses_count}/{c.max_uses}</span>
+                  <span style={{ fontSize: 12, color: '#6E6E73' }}>{c.duration_days ? `${c.duration_days}gg` : '∞'}</span>
+                  <span style={{ fontSize: 12, color: '#6E6E73' }}>{c.valid_until ? new Date(c.valid_until).toLocaleDateString('it-IT') : '—'}</span>
+                  <span style={{
+                    display: 'inline-block', padding: '3px 8px', borderRadius: 100, fontSize: 10, fontWeight: 700,
+                    background: c.is_active ? '#D1FAE5' : '#FEE2E2',
+                    color: c.is_active ? '#065F46' : '#991B1B',
+                    width: 'fit-content',
+                  }}>
+                    {c.is_active ? 'Attivo' : 'Revocato'}
+                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    {c.is_active && (
+                      <button
+                        style={{ ...btnIcon, borderColor: '#EF444440' }}
+                        title="Revoca"
+                        onClick={() => {
+                          void (async () => {
+                            const res = await fetch(`/api/admin/access-codes/${c.code}`, { method: 'DELETE' });
+                            if (res.ok) {
+                              setToastMsg(`Codice "${c.code}" revocato.`);
+                              await loadCodes();
+                            } else {
+                              const json = await res.json();
+                              setToastMsg(`Errore: ${(json as { error?: string }).error ?? 'Revoca fallita'}`);
+                            }
+                          })();
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget).style.background = '#FEF2F2'; }}
+                        onMouseLeave={(e) => { (e.currentTarget).style.background = '#fff'; }}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
       {/* ─── Plan Features Modal ─── */}
       {planConfigApp && (
         <div
@@ -1111,6 +1412,84 @@ function AdminConsoleContent() {
                           + Aggiungi
                         </button>
                       </div>
+
+                      {/* Limits & trial_days section */}
+                      {(() => {
+                        const limitKeys: LimitKey[] = APP_PLAN_CONFIG[planConfigApp.id]?.limitKeys ?? [];
+                        const currentLimits = editingLimits[row.plan_code] ?? {};
+                        const currentTrialDays = editingTrialDays[row.plan_code] ?? 0;
+                        if (limitKeys.length === 0 && row.billing_type !== 'subscription') return null;
+                        return (
+                          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                            <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Limiti & Configurazione</p>
+                            {row.billing_type === 'subscription' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                <label style={{ fontSize: 13, color: '#1D1D1F', fontWeight: 600, minWidth: 160 }}>Giorni di prova</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={currentTrialDays}
+                                  onChange={(e) => setEditingTrialDays((prev) => ({ ...prev, [row.plan_code]: Number(e.target.value) }))}
+                                  style={{ width: 80, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13 }}
+                                />
+                              </div>
+                            )}
+                            {limitKeys.map((lk) => {
+                              if (lk.type === 'number' || lk.type === 'credits') {
+                                return (
+                                  <div key={lk.key} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                    <label style={{ fontSize: 13, color: '#1D1D1F', fontWeight: 600, minWidth: 160 }}>
+                                      {lk.type === 'credits' ? `Crediti inclusi all'acquisto` : lk.label}
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={(currentLimits[lk.key] as number | undefined) ?? ''}
+                                      onChange={(e) => setEditingLimits((prev) => ({
+                                        ...prev,
+                                        [row.plan_code]: { ...(prev[row.plan_code] ?? {}), [lk.key]: Number(e.target.value) },
+                                      }))}
+                                      style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13 }}
+                                    />
+                                  </div>
+                                );
+                              }
+                              if (lk.type === 'tabs' && lk.options) {
+                                const selectedTabs = (currentLimits[lk.key] as string[] | undefined) ?? [];
+                                return (
+                                  <div key={lk.key} style={{ marginBottom: 10 }}>
+                                    <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>{lk.label}</p>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                      {lk.options.map((opt) => {
+                                        const checked = selectedTabs.includes(opt);
+                                        return (
+                                          <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, cursor: 'pointer' }}>
+                                            <input
+                                              type="checkbox"
+                                              checked={checked}
+                                              onChange={() => {
+                                                const updated = checked
+                                                  ? selectedTabs.filter((t) => t !== opt)
+                                                  : [...selectedTabs, opt];
+                                                setEditingLimits((prev) => ({
+                                                  ...prev,
+                                                  [row.plan_code]: { ...(prev[row.plan_code] ?? {}), [lk.key]: updated },
+                                                }));
+                                              }}
+                                            />
+                                            {opt}
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

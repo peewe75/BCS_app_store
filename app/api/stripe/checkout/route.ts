@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   const { data: plan, error } = await supabase
     .from('app_billing_plans')
-    .select('app_id, plan_code, billing_type, stripe_price_id, grant_plan')
+    .select('app_id, plan_code, billing_type, stripe_price_id, grant_plan, trial_days')
     .eq('app_id', appId)
     .eq('plan_code', planCode)
     .eq('is_active', true)
@@ -52,11 +52,16 @@ export async function POST(request: Request) {
   const successUrl = `${env.appUrl}/workspace/${appId}?checkout=success`;
   const cancelUrl = `${env.appUrl}/workspace/${appId}?checkout=cancelled`;
 
+  const trialDays = (plan.trial_days as number | null | undefined) ?? 0;
+  const isSubscription = plan.billing_type === 'subscription';
+  const hasTrialDays = isSubscription && trialDays > 0;
+
   const session = await stripe.checkout.sessions.create({
-    mode: plan.billing_type === 'subscription' ? 'subscription' : 'payment',
+    mode: isSubscription ? 'subscription' : 'payment',
     success_url: successUrl,
     cancel_url: cancelUrl,
     customer_email: user.primaryEmailAddress?.emailAddress ?? undefined,
+    ...(hasTrialDays ? { payment_method_collection: 'if_required' as const } : {}),
     line_items: [
       {
         price: plan.stripe_price_id,
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
       user_id: userId,
     },
     subscription_data:
-      plan.billing_type === 'subscription'
+      isSubscription
         ? {
             metadata: {
               app_id: plan.app_id,
@@ -78,6 +83,16 @@ export async function POST(request: Request) {
               grant_plan: plan.grant_plan ?? plan.plan_code,
               user_id: userId,
             },
+            ...(hasTrialDays
+              ? {
+                  trial_period_days: trialDays,
+                  trial_settings: {
+                    end_behavior: {
+                      missing_payment_method: 'cancel' as const,
+                    },
+                  },
+                }
+              : {}),
           }
         : undefined,
   });

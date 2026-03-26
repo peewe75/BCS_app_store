@@ -135,10 +135,12 @@ export default function UserDashboard() {
 
 
   const handleOpenApp = (app: AppRecord) => {
+    const grantEntry = unlockedApps[app.id];
+    const isExpiredGrant = grantEntry?.expires_at ? new Date(grantEntry.expires_at) < new Date() : false;
     const hasAccess =
       isAdmin ||
       isFreeApp(app) ||
-      Boolean(unlockedApps[app.id]);
+      (Boolean(grantEntry) && !isExpiredGrant);
     const href = getAppPrimaryHref(app, hasAccess);
 
     if (app.is_internal) {
@@ -349,27 +351,34 @@ export default function UserDashboard() {
             !loadError &&
             apps.map((app) => {
               const accentColor = app.accent_color ?? '#3713ec';
+              const grantEntry = unlockedApps[app.id];
+              const isExpired = grantEntry?.expires_at ? new Date(grantEntry.expires_at) < new Date() : false;
+              const effectiveGrant = isExpired ? undefined : grantEntry;
               const isUnlocked =
                 isAdmin ||
                 isFreeApp(app) ||
-                Boolean(unlockedApps[app.id]);
+                Boolean(effectiveGrant);
               const detailHref = getAppPublicRoute(app);
-              const activePlanCode = unlockedApps[app.id]?.plan;
+              const activePlanCode = effectiveGrant?.plan;
               const planLabel = app.plans?.find((p) => p.code === activePlanCode)?.label;
               const badge = app.is_coming_soon
                 ? 'Prossimamente'
-                : isUnlocked
-                  ? 'Accesso attivo'
-                  : app.badge ?? app.pricing_badge ?? 'BCS AI';
+                : isExpired && !isAdmin
+                  ? 'Accesso scaduto'
+                  : isUnlocked
+                    ? 'Accesso attivo'
+                    : app.badge ?? app.pricing_badge ?? 'BCS AI';
               const secondaryLabel = isAdmin
                 ? 'Accesso admin completo'
-                : planLabel
-                  ? `Piano: ${planLabel}`
-                  : isFreeApp(app) && isUnlocked
-                    ? 'Gratuito'
-                    : isUnlocked
-                      ? app.price_label ?? app.pricing_badge ?? 'Disponibile'
-                      : 'Nessun accesso attivo';
+                : isExpired && !isAdmin
+                  ? 'Accesso scaduto'
+                  : planLabel
+                    ? `Piano: ${planLabel}`
+                    : isFreeApp(app) && isUnlocked
+                      ? 'Gratuito'
+                      : isUnlocked
+                        ? app.price_label ?? app.pricing_badge ?? 'Disponibile'
+                        : 'Nessun accesso attivo';
 
               return (
                 <motion.div
@@ -413,9 +422,9 @@ export default function UserDashboard() {
                         letterSpacing: '0.04em',
                         padding: '4px 12px',
                         borderRadius: '100px',
-                        background: `${accentColor}15`,
-                        color: accentColor,
-                        border: `1px solid ${accentColor}25`,
+                        background: isExpired && !isAdmin ? '#FEE2E2' : `${accentColor}15`,
+                        color: isExpired && !isAdmin ? '#991B1B' : accentColor,
+                        border: isExpired && !isAdmin ? '1px solid #FECDD3' : `1px solid ${accentColor}25`,
                       }}
                     >
                       {badge}
@@ -429,7 +438,7 @@ export default function UserDashboard() {
                     <p style={{ fontSize: '14px', color: '#6E6E73', margin: '0 0 10px', lineHeight: 1.5, fontWeight: 400 }}>
                       {app.tagline || app.description || 'Catalogo sincronizzato da Supabase.'}
                     </p>
-                    <p style={{ fontSize: '12px', color: accentColor, margin: 0, fontWeight: 600 }}>
+                    <p style={{ fontSize: '12px', color: isExpired && !isAdmin ? '#991B1B' : accentColor, margin: 0, fontWeight: 600 }}>
                       {secondaryLabel}
                     </p>
                   </div>

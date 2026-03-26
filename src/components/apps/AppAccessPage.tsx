@@ -31,6 +31,11 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [autoCheckoutStarted, setAutoCheckoutStarted] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
+  const [redeemError, setRedeemError] = useState<string | null>(null);
+  const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const [redeemOpen, setRedeemOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +74,9 @@ export default function AppAccessPage({ slug }: { slug: string }) {
         .maybeSingle();
 
       if (!cancelled) {
-        setGrant((data as UserAppGrant | null) ?? null);
+        const rawGrant = (data as UserAppGrant | null) ?? null;
+        const isExpired = rawGrant?.expires_at ? new Date(rawGrant.expires_at) < new Date() : false;
+        setGrant(isExpired ? null : rawGrant);
         setLoading(false);
       }
     };
@@ -89,6 +96,25 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     if (isFreeApp(app)) return true;
     return Boolean(grant);
   }, [app, grant, isAdmin]);
+
+  const handleRedeem = async () => {
+    if (!redeemCode.trim() || redeemLoading) return;
+    setRedeemLoading(true);
+    setRedeemError(null);
+    const res = await fetch('/api/redeem', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: redeemCode.trim().toUpperCase() }),
+    });
+    const json = await res.json() as { app_id?: string; plan?: string; expires_at?: string | null; error?: string };
+    setRedeemLoading(false);
+    if (res.ok) {
+      setRedeemSuccess(true);
+      setGrant({ app_id: json.app_id ?? '', plan: json.plan ?? null, expires_at: json.expires_at ?? null });
+    } else {
+      setRedeemError(json.error ?? 'Codice non valido.');
+    }
+  };
 
   const handleCheckout = async () => {
     if (!app || checkoutLoading) {
@@ -179,6 +205,8 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     // Check if this app has a paid Stripe plan configured (non-free plans)
     const appConfig = APP_PLAN_CONFIG[app.id];
     const hasPaidPlan = appConfig?.plans?.some((p) => p.code !== 'free') ?? false;
+    const planCfgForTrial = appConfig?.plans?.find((p) => p.code !== 'free');
+    const trialDays = planCfgForTrial?.trial_days;
     return (
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '120px 24px' }}>
         <div style={{ padding: 32, borderRadius: 28, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -238,7 +266,11 @@ export default function AppAccessPage({ slug }: { slug: string }) {
                   opacity: checkoutLoading ? 0.7 : 1,
                 }}
               >
-                {checkoutLoading ? 'Apro Stripe…' : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
+                {checkoutLoading
+                  ? 'Apro Stripe…'
+                  : trialDays
+                    ? `${trialDays} giorni gratis, poi ${app.price_label ?? 'Abbonati'}`
+                    : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
               </button>
             )}
             <Link href="/dashboard" style={{
@@ -256,6 +288,48 @@ export default function AppAccessPage({ slug }: { slug: string }) {
           {checkoutError ? (
             <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>{checkoutError}</p>
           ) : null}
+
+          {/* Redeem code box */}
+          <div style={{ marginTop: 20 }}>
+            <button
+              onClick={() => setRedeemOpen((o) => !o)}
+              style={{ background: 'none', border: 'none', color: '#6E6E73', fontSize: 13, cursor: 'pointer', padding: 0 }}
+            >
+              {redeemOpen ? '▲' : '▼'} Hai un codice di accesso?
+            </button>
+            {redeemOpen && (
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <input
+                  value={redeemCode}
+                  onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+                  placeholder="CODICE"
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 10,
+                    border: '1px solid rgba(0,0,0,0.12)', fontSize: 13,
+                    fontFamily: 'monospace', letterSpacing: '0.05em',
+                  }}
+                />
+                <button
+                  onClick={() => void handleRedeem()}
+                  disabled={redeemLoading}
+                  style={{
+                    padding: '10px 18px', borderRadius: 10,
+                    background: accentColor, color: '#fff', border: 'none',
+                    fontWeight: 700, fontSize: 13,
+                    cursor: redeemLoading ? 'default' : 'pointer',
+                  }}
+                >
+                  {redeemLoading ? '…' : 'Riscatta'}
+                </button>
+              </div>
+            )}
+            {redeemError && (
+              <p style={{ margin: '8px 0 0', color: '#b42318', fontSize: 13, fontWeight: 600 }}>{redeemError}</p>
+            )}
+            {redeemSuccess && (
+              <p style={{ margin: '8px 0 0', color: '#059669', fontSize: 13, fontWeight: 600 }}>&#10003; Accesso attivato!</p>
+            )}
+          </div>
         </div>
       </div>
     );

@@ -1,6 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
+import { hasSupabaseAdminConfig } from '@/src/lib/env';
 
 // Veo generation can take 60-90s — requires Vercel Pro for maxDuration > 60
 export const maxDuration = 300;
@@ -11,6 +13,41 @@ export async function POST(req: Request) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
+
+  // Credit check (skip for admin)
+  if (hasSupabaseAdminConfig()) {
+    const clerkUser = await currentUser();
+    const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin';
+
+    if (!isAdmin) {
+      const supabase = createSupabaseAdminClient();
+      if (supabase) {
+        // Check credits
+        const { data: creditRow } = await supabase
+          .from('user_credits')
+          .select('credits')
+          .eq('user_id', userId)
+          .eq('app_id', 'ugc')
+          .maybeSingle();
+
+        const currentCredits = (creditRow?.credits as number | null) ?? 0;
+
+        if (currentCredits < 1) {
+          return NextResponse.json(
+            { error: 'Crediti UGC esauriti. Acquista un nuovo pacchetto.' },
+            { status: 402 },
+          );
+        }
+
+        // Decrement credits
+        await supabase
+          .from('user_credits')
+          .update({ credits: currentCredits - 1 })
+          .eq('user_id', userId)
+          .eq('app_id', 'ugc');
+      }
+    }
+  }
 
   try {
     const body = (await req.json()) as { imageBase64: string; prompt: string };

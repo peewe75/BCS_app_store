@@ -7,10 +7,20 @@ export interface PlanTier {
   description?: string;
   /** Default feature list — can be overridden by admin via app_billing_plans.features in DB */
   features?: string[];
+  trial_days?: number;
+}
+
+export interface LimitKey {
+  key: string;
+  label: string;
+  type: 'number' | 'tabs' | 'credits';
+  period?: 'daily' | 'monthly';
+  options?: string[]; // only for type:'tabs'
+  default?: number | string[];
 }
 
 /** Static plan config and admin URLs per app (not stored in Supabase). */
-export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: string }> = {
+export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: string; limitKeys?: LimitKey[] }> = {
   softi: {
     plans: [
       {
@@ -40,6 +50,12 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
     ],
     admin_url: 'https://softi-ai-analyzer.onrender.com/admin',
+    limitKeys: [
+      { key: 'analyses_per_day', label: 'Analisi AI al giorno', type: 'number', period: 'daily', default: 1 },
+      { key: 'reports_per_month', label: 'Report al mese', type: 'number', period: 'monthly', default: 0 },
+      { key: 'max_assets', label: 'Asset selezionabili', type: 'number', default: 3 },
+      { key: 'tabs', label: 'Tab accessibili', type: 'tabs', options: ['overview', 'analysis', 'reports', 'signals', 'mt5'] },
+    ],
   },
   trading: {
     plans: [
@@ -48,6 +64,9 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
         label: 'Acquisto unico — €9,90',
         features: ['Report fiscale completo', 'Supporto tutti i broker', 'Download PDF', 'Storico calcoli'],
       },
+    ],
+    limitKeys: [
+      { key: 'reports_per_month', label: 'Report al mese', type: 'number', period: 'monthly', default: 5 },
     ],
   },
   ravvedimento: {
@@ -65,9 +84,15 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
         features: ['Calcoli illimitati', 'Tutte le imposte', 'Storico completo', 'Esportazione PDF/Excel'],
       },
     ],
+    limitKeys: [
+      { key: 'calculations_per_month', label: 'Calcoli al mese', type: 'number', period: 'monthly', default: 10 },
+    ],
   },
   ugc: {
     plans: [{ code: 'base', label: 'Base', features: ['5 video al mese', 'Formato HD', 'Template base'] }],
+    limitKeys: [
+      { key: 'video_credits', label: 'Crediti video', type: 'credits', default: 10 },
+    ],
   },
   'ai-crisi': {
     plans: [

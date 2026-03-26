@@ -17,12 +17,11 @@ async function verifyAdmin() {
   if (!supabase) {
     return { error: 'Supabase admin non disponibile.', status: 503 as const };
   }
-  return { supabase };
+  return { supabase, userId };
 }
 
-// GET /api/admin/plan-features?app_id=softi
-// Returns all billing plans for an app, including their features arrays
-export async function GET(req: NextRequest) {
+// GET /api/admin/access-codes
+export async function GET(_req: NextRequest) {
   try {
     const check = await verifyAdmin();
     if ('error' in check) {
@@ -30,70 +29,72 @@ export async function GET(req: NextRequest) {
     }
     const { supabase } = check;
 
-    const appId = req.nextUrl.searchParams.get('app_id');
-    if (!appId) {
-      return NextResponse.json({ error: 'app_id è obbligatorio.' }, { status: 400 });
-    }
-
     const { data, error } = await supabase
-      .from('app_billing_plans')
-      .select('app_id, plan_code, billing_type, stripe_price_id, grant_plan, features, is_active, limits, trial_days')
-      .eq('app_id', appId)
-      .order('plan_code');
+      .from('access_codes')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ plans: data ?? [] });
+    return NextResponse.json({ codes: data ?? [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Errore imprevisto.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-// PUT /api/admin/plan-features
-// Body: { app_id, plan_code, features: string[], limits?: Record<string,unknown>, trial_days?: number }
-// Updates the features array (and optionally limits/trial_days) for a specific plan
-export async function PUT(req: NextRequest) {
+// POST /api/admin/access-codes
+// Body: { code?, app_id, plan, max_uses, duration_days?, valid_until? }
+export async function POST(req: NextRequest) {
   try {
     const check = await verifyAdmin();
     if ('error' in check) {
       return NextResponse.json({ error: check.error }, { status: check.status });
     }
-    const { supabase } = check;
+    const { supabase, userId } = check;
 
     const body = (await req.json()) as {
+      code?: string;
       app_id?: string;
-      plan_code?: string;
-      features?: string[];
-      limits?: Record<string, unknown>;
-      trial_days?: number;
+      plan?: string;
+      max_uses?: number;
+      duration_days?: number;
+      valid_until?: string;
     };
-    const { app_id, plan_code, features, limits, trial_days } = body;
 
-    if (!app_id || !plan_code || !Array.isArray(features)) {
-      return NextResponse.json(
-        { error: 'app_id, plan_code e features sono obbligatori.' },
-        { status: 400 },
-      );
+    const { app_id, plan, max_uses, duration_days, valid_until } = body;
+    const code = body.code?.trim().toUpperCase() || Math.random().toString(36).slice(2, 10).toUpperCase();
+
+    if (!app_id || !plan) {
+      return NextResponse.json({ error: 'app_id e plan sono obbligatori.' }, { status: 400 });
     }
 
-    const updateObj: Record<string, unknown> = { features };
-    if (limits !== undefined) updateObj.limits = limits;
-    if (trial_days !== undefined) updateObj.trial_days = trial_days;
+    const insertData: Record<string, unknown> = {
+      code,
+      app_id,
+      plan,
+      max_uses: max_uses ?? 1,
+      uses_count: 0,
+      created_by: userId,
+      is_active: true,
+    };
 
-    const { error } = await supabase
-      .from('app_billing_plans')
-      .update(updateObj)
-      .eq('app_id', app_id)
-      .eq('plan_code', plan_code);
+    if (duration_days !== undefined && duration_days !== null) {
+      insertData.duration_days = duration_days;
+    }
+    if (valid_until) {
+      insertData.valid_until = valid_until;
+    }
+
+    const { error } = await supabase.from('access_codes').insert(insertData);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ code });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Errore imprevisto.';
     return NextResponse.json({ error: message }, { status: 500 });
