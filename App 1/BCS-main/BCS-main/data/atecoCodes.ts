@@ -1,0 +1,36 @@
+import { AtecoCode } from "../types";
+
+// Dataset ridotto di esempio. In produzione questo potrebbe essere molto più lungo.
+export const ATECO_CODES: AtecoCode[] = [
+  { code: "62.01.00", description: "Produzione di software non connesso all'edizione (Sviluppatore, Programmatore)", coeff: 0.67 },
+  { code: "62.02.00", description: "Consulenza nel settore delle tecnologie dell'informatica", coeff: 0.67 },
+  { code: "73.11.01", description: "Ideazione di campagne pubblicitarie", coeff: 0.78 },
+  { code: "73.11.02", description: "Conduzione di campagne di marketing e altri servizi pubblicitari", coeff: 0.78 },
+  { code: "74.10.21", description: "Attività dei disegnatori grafici di pagine web (Web Designer)", coeff: 0.78 },
+  { code: "74.90.99", description: "Altre attività professionali nca", coeff: 0.78 },
+  { code: "69.10.10", description: "Attività degli studi legali (Avvocati)", coeff: 0.78 },
+  { code: "69.20.11", description: "Servizi forniti da dottori commercialisti", coeff: 0.78 },
+  { code: "85.59.20", description: "Corsi di formazione e corsi di aggiornamento professionale", coeff: 0.78 },
+  { code: "90.01.09", description: "Altre rappresentazioni artistiche", coeff: 0.67 },
+  { code: "90.03.09", description: "Altre creazioni artistiche e letterarie", coeff: 0.67 },
+  { code: "70.22.09", description: "Altre attività di consulenza imprenditoriale", coeff: 0.78 },
+  { code: "71.11.00", description: "Attività degli studi di architettura (Architetti)", coeff: 0.78 },
+  { code: "71.12.10", description: "Attività degli studi di ingegneria (Ingegneri)", coeff: 0.78 },
+  { code: "86.21.00", description: "Servizi degli studi medici di medicina generale", coeff: 0.78 },
+  { code: "86.90.21", description: "Fisioterapia", coeff: 0.78 },
+  { code: "96.02.01", description: "Servizi dei parrucchieri", coeff: 0.67 },
+  { code: "96.09.05", description: "Organizzazione di feste e cerimonie", coeff: 0.67 },
+  { code: "43.21.01", description: "Installazione di impianti elettrici (Elettricista)", coeff: 0.86 },
+  { code: "43.32.02", description: "Posa in opera di infissi", coeff: 0.86 },
+  { code: "41.20.00", description: "Costruzione di edifici residenziali e non residenziali (Muratore, Costruttore)", coeff: 0.86 },
+  { code: "43.22.01", description: "Installazione di impianti idraulici, di riscaldamento e di condizionamento dell'aria (Idraulico)", coeff: 0.86 },
+  { code: "47.91.10", description: "Commercio al dettaglio via internet (E-commerce, Dropshipping)", coeff: 0.40 },
+  { code: "56.10.11", description: "Ristorazione con somministrazione", coeff: 0.40 },
+  { code: "68.20.01", description: "Locazione immobiliare di beni propri", coeff: 0.86 },
+  { code: "68.31.00", description: "Attività di mediazione immobiliare", coeff: 0.86 },
+  { code: "59.11.00", description: "Attività di produzione cinematografica (Video Maker, Regista)", coeff: 0.67 },
+  { code: "74.20.19", description: "Altre attività di riprese fotografiche (Fotografo)", coeff: 0.78 },
+  { code: "85.51.00", description: "Corsi sportivi e ricreativi", coeff: 0.78 },
+  { code: "93.13.00", description: "Gestione di palestre", coeff: 0.67 },
+  { code: "93.19.99", description: "Altre attività sportive nca", coeff: 0.67 }
+];

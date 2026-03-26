@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.netlify/
+.env.local
+.env
+*.env
+.DS_Store
+App Trading fiscale/

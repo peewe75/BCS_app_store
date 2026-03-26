@@ -1,0 +1,398 @@
+{
+    "name": "Calcolo Netto e Lead (Final)",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "calendarId": "primary",
+                "triggerOn": "eventCreated",
+                "options": {}
+            },
+            "id": "e0f46fde-c3e8-4d66-8586-0046d8236482",
+            "name": "Google Calendar Trigger",
+            "type": "n8n-nodes-base.googleCalendarTrigger",
+            "typeVersion": 1,
+            "position": [
+                208,
+                448
+            ],
+            "credentials": {
+                "googleCalendarOAuth2Api": {
+                    "id": "7uC8Rm2jhjBvrf3h",
+                    "name": "Google Calendar account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "search",
+                "base": {
+                    "__rl": true,
+                    "value": "appUFmae5fNaYhrVB",
+                    "mode": "list",
+                    "cachedResultName": "Dashboard_Gestione_Clienti.xlsx",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "tblMhY5enLXFmNrPq",
+                    "mode": "list",
+                    "cachedResultName": "Clienti_DB",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB/tblMhY5enLXFmNrPq"
+                },
+                "filterByFormula": "=Email = '{{$json.organizer.email}}'",
+                "options": {}
+            },
+            "id": "67540728-7172-4dce-bde6-a41eca5ffd47",
+            "name": "Search Lead",
+            "type": "n8n-nodes-base.airtable",
+            "typeVersion": 2,
+            "position": [
+                432,
+                448
+            ],
+            "credentials": {
+                "airtableTokenApi": {
+                    "id": "v1nCiqzIBteh76zO",
+                    "name": "Airtable Personal Access Token account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "base": {
+                    "__rl": true,
+                    "value": "appUFmae5fNaYhrVB",
+                    "mode": "list",
+                    "cachedResultName": "Dashboard_Gestione_Clienti.xlsx",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "tblMhY5enLXFmNrPq",
+                    "mode": "list",
+                    "cachedResultName": "Clienti_DB",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB/tblMhY5enLXFmNrPq"
+                },
+                "columns": {
+                    "mappingMode": "autoMapInputData",
+                    "value": {},
+                    "matchingColumns": [
+                        "id"
+                    ],
+                    "schema": [
+                        {
+                            "id": "id",
+                            "displayName": "id",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "readOnly": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "id": "95bed6a8-0f88-4498-929c-ade9a74b773d",
+            "name": "Aggiorna Lead",
+            "type": "n8n-nodes-base.airtable",
+            "typeVersion": 2,
+            "position": [
+                656,
+                352
+            ],
+            "credentials": {
+                "airtableTokenApi": {
+                    "id": "v1nCiqzIBteh76zO",
+                    "name": "Airtable Personal Access Token account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "subject": "Nuova prenotazione",
+                "message": "Nuova prenotazione ricevuta.  Email cliente: {{$json.organizer.email}}  Data e ora: {{$json.start.dateTime}}  Link riunione: {{$json.hangoutLink}}",
+                "additionalFields": {
+                    "toList": [
+                        "peewe75@gmail.com"
+                    ]
+                }
+            },
+            "id": "a8a103f9-5510-4cd4-ad4a-ec58917f2c31",
+            "name": "Avviso Studio",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 1,
+            "position": [
+                656,
+                544
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "GE2b12PFoWpu3M3X",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "const body = items[0].json.body || items[0].json;\nconst incasso = parseFloat(body.incasso);\nconst coeff = parseFloat(body.coeff_ateco);\nconst aliqImp = parseFloat(body.aliq_imposta);\nconst aliqContr = parseFloat(body.aliq_contributi);\nconst minContr = parseFloat(body.min_contributi) || 0;\nconst reddito = incasso * coeff;\nconst contributi = Math.max(incasso * aliqContr, minContr);\nconst base = Math.max(0, reddito - contributi);\nconst imposta = base * aliqImp;\nconst netto = incasso - contributi - imposta;\nconst pressione = (contributi + imposta) / incasso;\nreturn items.map(item => {\n  item.json.netto = netto;\n  item.json.contributi = contributi;\n  item.json.imposta = imposta;\n  item.json.pressione = pressione;\n  return item;\n});"
+            },
+            "id": "6d52be4e-a6d8-42e5-b47d-8aa36f2c6466",
+            "name": "Calcolo Netto",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                432,
+                -64
+            ],
+            "alwaysOutputData": true
+        },
+        {
+            "parameters": {
+                "operation": "upsert",
+                "base": {
+                    "__rl": true,
+                    "value": "appUFmae5fNaYhrVB",
+                    "mode": "list",
+                    "cachedResultName": "Dashboard_Gestione_Clienti.xlsx",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "tblMhY5enLXFmNrPq",
+                    "mode": "list",
+                    "cachedResultName": "Clienti_DB",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB/tblMhY5enLXFmNrPq"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Email": "={{ $json.body.email || $json.email }}"
+                    },
+                    "matchingColumns": [
+                        "Email"
+                    ]
+                },
+                "options": {}
+            },
+            "id": "901ea7ea-eeed-4484-90d7-45a0097d9b59",
+            "name": "Create Cliente",
+            "type": "n8n-nodes-base.airtable",
+            "typeVersion": 2,
+            "position": [
+                656,
+                -64
+            ],
+            "alwaysOutputData": true,
+            "credentials": {
+                "airtableTokenApi": {
+                    "id": "v1nCiqzIBteh76zO",
+                    "name": "Airtable Personal Access Token account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "base": {
+                    "__rl": true,
+                    "value": "appUFmae5fNaYhrVB",
+                    "mode": "list",
+                    "cachedResultName": "Dashboard_Gestione_Clienti.xlsx",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "tblKADWdbEv0z1BPh",
+                    "mode": "list",
+                    "cachedResultName": "Calcoli",
+                    "cachedResultUrl": "https://airtable.com/appUFmae5fNaYhrVB/tblKADWdbEv0z1BPh"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Email": "={{ $json.body.email || $json.email }}",
+                        "Incasso": "={{ $json.body.incasso || $json.incasso }}",
+                        "Netto": "={{ $json.netto }}",
+                        "Contributi": "={{ $json.contributi }}",
+                        "Imposta": "={{ $json.imposta }}",
+                        "Pressione": "={{ $json.pressione }}",
+                        "Cliente": [
+                            "={{ $node['Create Cliente'].json.id }}"
+                        ]
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Email",
+                            "displayName": "Email",
+                            "required": false,
+                            "defaultMatch": false,
+                            "canBeUsedToMatch": true,
+                            "display": true,
+                            "type": "string",
+                            "readOnly": false,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "id": "2be39b5e-cb99-4bea-94ee-03240291fe19",
+            "name": "Create Calcolo",
+            "type": "n8n-nodes-base.airtable",
+            "typeVersion": 2,
+            "position": [
+                880,
+                -64
+            ],
+            "credentials": {
+                "airtableTokenApi": {
+                    "id": "v1nCiqzIBteh76zO",
+                    "name": "Airtable Personal Access Token account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "subject": "Hai calcolato il tuo netto – verifica gratuita",
+                "message": "Ciao,\n\nhai appena effettuato una simulazione del tuo netto.\n\nPrenota qui la verifica gratuita:\nhttps://calendar.app.google/Pu2RvnAb6NNfLT6u5\n",
+                "toList": [
+                    "={{ $json.body.email }}"
+                ],
+                "additionalFields": {}
+            },
+            "id": "1cc110af-95c4-4305-a742-aff79bb7cfb0",
+            "name": "Invia Email",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                -64
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "GE2b12PFoWpu3M3X",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "calcolo-netto",
+                "responseMode": "onReceived",
+                "responseData": "noData",
+                "options": {}
+            },
+            "id": "1e87c0b1-5f72-47d8-ba3c-b1a2d0626fc0",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                208,
+                -64
+            ],
+            "webhookId": "c88a08b7-b88a-4cc4-b976-5b3b385ffe77"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Google Calendar Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Search Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Search Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Aggiorna Lead",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Avviso Studio",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Calcolo Netto": {
+            "main": [
+                [
+                    {
+                        "node": "Create Cliente",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Calcolo Netto",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Cliente": {
+            "main": [
+                [
+                    {
+                        "node": "Create Calcolo",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Calcolo": {
+            "main": [
+                [
+                    {
+                        "node": "Invia Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "77d95b77-85d7-4d42-a94b-f6a42966ea3c",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "c472d3ad29fd0ea8b0be296524a0aebbc10e6bb8e7ee9ee508d524d2809636ff"
+    },
+    "id": "islLKnIz97yDpPNA",
+    "tags": []
+}

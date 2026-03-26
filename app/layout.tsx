@@ -45,8 +45,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
+      <head>
+        <Script
+          id="gtag-shim"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: 'window.gtag = window.gtag || function(){};' }}
+        />
+      </head>
       <body>
-        <Script id="gtag-shim" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: 'window.gtag=window.gtag||function(){}' }} />
         {env.clerkPublishableKey ? (
           <ClerkProvider publishableKey={env.clerkPublishableKey}>
             <SiteHeader />

@@ -1,0 +1,2 @@
+Email,Ragione_sociale_nome,PIVA_CF,Telefono,Codice_ATECO,Regime_fiscale,Previdenza,Aliquota_imposta,Aliquota_contributi,Minimo_contributi,Incasso_annuo,Stato_cliente,Fonte_lead,Data_appuntamento,Note_studio
+test@example.com,Test Nome,IT12345678901,3331234567,62.01,Forfettario,Gestione Separata,0.05,0.2607,0,50000,Nuovo Lead,Landing Page,2024-01-01,Note di test

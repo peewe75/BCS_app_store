@@ -1,0 +1,5 @@
+{
+  "name": "Studio BCS - Calcolo Forfettario",
+  "description": "Applicazione React per il calcolo del netto in regime forfettario con integrazione Webhook e prenotazione appuntamenti.",
+  "requestFramePermissions": []
+}

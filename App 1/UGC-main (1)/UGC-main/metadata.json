@@ -1,0 +1,5 @@
+{
+  "name": "UGC Ad Creator",
+  "description": "An AI-powered workflow to transform static product images into engaging UGC video ads using Gemini Vision, Imagen, and Veo models.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{url_effective}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:3000/apps/ugc)",
+      "Bash(curl -s http://localhost:3000/dashboard -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit --skipLibCheck)",
+      "mcp__c4045fd9-8178-4b01-a98d-288750cce863__netlify-project-services-reader",
+      "Bash(curl -s http://localhost:3000/apps/trading)",
+      "mcp__869ecec8-4b40-49bc-9815-9a66ed49aa36__execute_sql",
+      "Bash(PGPASSWORD=Yqnc3TdyhcgyE3t7 psql \"postgresql://postgres.knuuqldetklmsrtvggtk:Yqnc3TdyhcgyE3t7@aws-0-eu-central-1.pooler.supabase.com:6543/postgres\")",
+      "Bash(curl -s -X POST \"https://knuuqldetklmsrtvggtk.supabase.co/rest/v1/apps\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudXVxbGRldGtsbXNydHZnZ3RrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDEyMzMxNiwiZXhwIjoyMDg5Njk5MzE2fQ.9voIw78Kv2tSudnq6QuVGZ6N6aC9j652RKaBEjnV238\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudXVxbGRldGtsbXNydHZnZ3RrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDEyMzMxNiwiZXhwIjoyMDg5Njk5MzE2fQ.9voIw78Kv2tSudnq6QuVGZ6N6aC9j652RKaBEjnV238\" -H \"Content-Type: application/json\" -H \"Prefer: return=representation\" -d '{\"\"\"\"id\"\"\"\":\"\"\"\"softi\"\"\"\",\"\"\"\"name\"\"\"\":\"\"\"\"Softi AI Analyzer\"\"\"\",\"\"\"\"description\"\"\"\":\"\"\"\"Segnali MT5, report Gemini, analisi interattiva multi-timeframe.\"\"\"\",\"\"\"\"accent_color\"\"\"\":\"\"\"\"#6366f1\"\"\"\",\"\"\"\"pricing_model\"\"\"\":\"\"\"\"subscription\"\"\"\",\"\"\"\"is_coming_soon\"\"\"\":false,\"\"\"\"sort_order\"\"\"\":6}')",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Supabase:'''', d[0][''''id''''] if isinstance\\(d,list\\) else d\\)\")",
+      "Bash(node node_modules/next/dist/bin/next build)"
+    ]
+  }
+}

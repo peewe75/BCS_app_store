@@ -1,0 +1,2 @@
+Email,Nome,Cognome,Incasso,Coefficiente,Netto,Imposta,Contributi,Pressione,Data_Calcolo,Fonte
+test@example.com,Mario,Rossi,45000,0.78,35000,2000,8000,0.22,2024-12-16,landing_bcs
