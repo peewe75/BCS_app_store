@@ -354,16 +354,22 @@ export default function UserDashboard() {
                 isFreeApp(app) ||
                 Boolean(unlockedApps[app.id]);
               const detailHref = getAppPublicRoute(app);
+              const activePlanCode = unlockedApps[app.id]?.plan;
+              const planLabel = app.plans?.find((p) => p.code === activePlanCode)?.label;
               const badge = app.is_coming_soon
                 ? 'Prossimamente'
                 : isUnlocked
                   ? 'Accesso attivo'
                   : app.badge ?? app.pricing_badge ?? 'BCS AI';
-              const secondaryLabel = unlockedApps[app.id]?.plan
-                ? `Piano ${unlockedApps[app.id].plan}`
-                : isUnlocked
-                  ? app.price_label ?? app.pricing_badge ?? 'Disponibile'
-                  : 'Richiede acquisto o grant';
+              const secondaryLabel = isAdmin
+                ? 'Accesso admin completo'
+                : planLabel
+                  ? `Piano: ${planLabel}`
+                  : isFreeApp(app) && isUnlocked
+                    ? 'Gratuito'
+                    : isUnlocked
+                      ? app.price_label ?? app.pricing_badge ?? 'Disponibile'
+                      : 'Nessun accesso attivo';
 
               return (
                 <motion.div

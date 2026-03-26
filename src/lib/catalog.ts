@@ -1,6 +1,39 @@
 import { publicSupabase } from '@/src/lib/supabase/public';
 import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
 
+export interface PlanTier {
+  code: string;
+  label: string;
+  description?: string;
+}
+
+/** Static plan config and admin URLs per app (not stored in Supabase). */
+export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: string }> = {
+  softi: {
+    plans: [
+      { code: 'free', label: 'Gratuito', description: 'Accesso limitato' },
+      { code: 'monthly', label: 'Mensile', description: 'Accesso completo' },
+    ],
+    admin_url: 'https://softi-ai-analyzer.onrender.com/admin',
+  },
+  trading: {
+    plans: [{ code: 'one_time', label: 'Acquisto unico' }],
+  },
+  ravvedimento: {
+    plans: [
+      { code: 'free', label: 'Gratuito', description: 'Accesso base' },
+      { code: 'monthly', label: 'Mensile', description: 'Accesso completo' },
+    ],
+  },
+  ugc: {
+    plans: [{ code: 'base', label: 'Base' }],
+  },
+  'ai-crisi': {
+    plans: [{ code: 'monthly', label: 'Mensile' }],
+    admin_url: 'https://ai-crisi.vercel.app/admin',
+  },
+};
+
 export interface AppLandingSection {
   id: string;
   title: string;
@@ -56,6 +89,8 @@ export interface AppRecord {
   is_coming_soon: boolean;
   created_at: string | null;
   landing_content?: AppLandingContent | null;
+  plans?: PlanTier[] | null;
+  admin_url?: string | null;
 }
 
 export interface UserAppGrant {
@@ -342,18 +377,29 @@ const STATIC_APPS: AppRecord[] = [
 ];
 
 export function normalizeApp(app: AppRecord): AppRecord {
+  // Merge static plan config when not already set (Supabase doesn't store plans/admin_url)
+  const config = APP_PLAN_CONFIG[app.id];
+  const enriched: Partial<AppRecord> = config
+    ? {
+        plans: app.plans ?? config.plans ?? null,
+        admin_url: app.admin_url ?? config.admin_url ?? null,
+      }
+    : {};
+
   if (app.is_internal) {
     const expectedWorkspaceRoute = getAppWorkspaceRoute(app.id);
 
     if (!app.internal_route || app.internal_route.startsWith('/apps/')) {
       return {
         ...app,
+        ...enriched,
         internal_route: expectedWorkspaceRoute,
       };
     }
 
     return {
       ...app,
+      ...enriched,
       internal_route: app.internal_route,
     };
   }
@@ -361,11 +407,12 @@ export function normalizeApp(app: AppRecord): AppRecord {
   if (!app.is_internal && app.internal_route) {
     return {
       ...app,
+      ...enriched,
       internal_route: null,
     };
   }
 
-  return app;
+  return { ...app, ...enriched };
 }
 
 export async function getPublicApps() {

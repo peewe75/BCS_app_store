@@ -175,40 +175,68 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   }
 
   if (!hasAccess) {
+    const accentColor = app.accent_color ?? '#3713ec';
     return (
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '120px 24px' }}>
         <div style={{ padding: 32, borderRadius: 28, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 8px', color: app.accent_color ?? '#3713ec', fontWeight: 700 }}>{app.name}</p>
-          <h1 style={{ marginTop: 0 }}>Accesso non ancora sbloccato</h1>
-          <p style={{ color: '#6E6E73', lineHeight: 1.7 }}>
-            La pagina e gia interna a Ultrabot Space, ma l&apos;entitlement arriva da `user_apps`. Se Stripe e configurato sul progetto Vercel puoi completare il checkout qui.
+          <div style={{
+            display: 'inline-block',
+            marginBottom: 16,
+            padding: '6px 14px',
+            borderRadius: 100,
+            background: `${accentColor}15`,
+            color: accentColor,
+            fontWeight: 700,
+            fontSize: 12,
+          }}>
+            {app.name}
+          </div>
+          <h1 style={{ marginTop: 0, fontSize: 28, letterSpacing: '-0.02em' }}>Accesso non attivo</h1>
+          <p style={{ color: '#6E6E73', lineHeight: 1.7, maxWidth: 480 }}>
+            Questo strumento richiede un abbonamento attivo. Contatta l&apos;amministratore per ricevere l&apos;accesso.
           </p>
+          <div style={{
+            marginTop: 24,
+            padding: '16px 20px',
+            borderRadius: 16,
+            background: `${accentColor}08`,
+            border: `1px solid ${accentColor}20`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}>
+            <span style={{ fontSize: 22 }}>✉️</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#1D1D1F' }}>Richiedi accesso</p>
+              <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6E6E73' }}>
+                L&apos;admin può attivare il tuo piano direttamente dal pannello di gestione.
+              </p>
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-              style={{
-                border: 'none',
-                borderRadius: 999,
-                background: app.accent_color ?? '#3713ec',
-                color: '#fff',
-                padding: '12px 20px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {checkoutLoading ? 'Apro Stripe...' : 'Sblocca con Stripe'}
-            </button>
-            <Link href="/dashboard" style={{ padding: '12px 20px', borderRadius: 999, border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none', color: '#1D1D1F', fontWeight: 700 }}>
+            <Link href="/dashboard" style={{
+              padding: '12px 20px',
+              borderRadius: 999,
+              background: accentColor,
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: 14,
+            }}>
               Torna alla dashboard
             </Link>
+            <Link href={`/apps/${app.id}`} style={{
+              padding: '12px 20px',
+              borderRadius: 999,
+              border: '1px solid rgba(0,0,0,0.08)',
+              textDecoration: 'none',
+              color: '#1D1D1F',
+              fontWeight: 700,
+              fontSize: 14,
+            }}>
+              Scopri i dettagli
+            </Link>
           </div>
-          {checkoutError ? (
-            <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>
-              {checkoutError}
-            </p>
-          ) : null}
         </div>
       </div>
     );
