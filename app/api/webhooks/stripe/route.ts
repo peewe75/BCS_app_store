@@ -32,12 +32,14 @@ async function grantAppAccess(metadata: Record<string, string | undefined>) {
     });
   }
 
-  await supabase.from('user_apps').upsert({
-    user_id: metadata.user_id,
-    app_id: metadata.app_id,
-    plan: metadata.grant_plan ?? metadata.plan_code ?? 'paid',
-    granted_at: new Date().toISOString(),
-  });
+  await supabase.from('user_apps').upsert(
+    {
+      user_id: metadata.user_id,
+      app_id: metadata.app_id,
+      plan: metadata.grant_plan ?? metadata.plan_code ?? 'paid',
+    },
+    { onConflict: 'user_id,app_id' },
+  );
 }
 
 async function revokeAppAccess(metadata: Record<string, string | undefined>) {

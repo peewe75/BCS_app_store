@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
-import { getPublicAppById, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
+import { getPublicAppById, APP_PLAN_CONFIG, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
 import ForfApp from '@/src/features/ForfApp';
 import RavvedimentoApp from '@/src/features/RavvedimentoApp';
 import TradingWorkspace from '@/src/components/apps/TradingWorkspace';
@@ -176,6 +176,9 @@ export default function AppAccessPage({ slug }: { slug: string }) {
 
   if (!hasAccess) {
     const accentColor = app.accent_color ?? '#3713ec';
+    // Check if this app has a paid Stripe plan configured (non-free plans)
+    const appConfig = APP_PLAN_CONFIG[app.id];
+    const hasPaidPlan = appConfig?.plans?.some((p) => p.code !== 'free') ?? false;
     return (
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '120px 24px' }}>
         <div style={{ padding: 32, borderRadius: 28, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -193,39 +196,52 @@ export default function AppAccessPage({ slug }: { slug: string }) {
           </div>
           <h1 style={{ marginTop: 0, fontSize: 28, letterSpacing: '-0.02em' }}>Accesso non attivo</h1>
           <p style={{ color: '#6E6E73', lineHeight: 1.7, maxWidth: 480 }}>
-            Questo strumento richiede un abbonamento attivo. Contatta l&apos;amministratore per ricevere l&apos;accesso.
+            {hasPaidPlan
+              ? 'Questo strumento richiede un abbonamento attivo. Acquista direttamente o contatta l\'amministratore.'
+              : 'Questo strumento richiede un accesso attivo. Contatta l\'amministratore per riceverlo.'}
           </p>
-          <div style={{
-            marginTop: 24,
-            padding: '16px 20px',
-            borderRadius: 16,
-            background: `${accentColor}08`,
-            border: `1px solid ${accentColor}20`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            <span style={{ fontSize: 22 }}>✉️</span>
-            <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#1D1D1F' }}>Richiedi accesso</p>
-              <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6E6E73' }}>
-                L&apos;admin può attivare il tuo piano direttamente dal pannello di gestione.
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-            <Link href="/dashboard" style={{
-              padding: '12px 20px',
-              borderRadius: 999,
-              background: accentColor,
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 700,
-              fontSize: 14,
+          {!hasPaidPlan && (
+            <div style={{
+              marginTop: 24,
+              padding: '16px 20px',
+              borderRadius: 16,
+              background: `${accentColor}08`,
+              border: `1px solid ${accentColor}20`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
             }}>
-              Torna alla dashboard
-            </Link>
-            <Link href={`/apps/${app.id}`} style={{
+              <span style={{ fontSize: 22 }}>✉️</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#1D1D1F' }}>Richiedi accesso</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6E6E73' }}>
+                  L&apos;admin può attivare il tuo piano direttamente dal pannello di gestione.
+                </p>
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+            {hasPaidPlan && (
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+                style={{
+                  border: 'none',
+                  borderRadius: 999,
+                  background: accentColor,
+                  color: '#fff',
+                  padding: '12px 20px',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: checkoutLoading ? 'default' : 'pointer',
+                  opacity: checkoutLoading ? 0.7 : 1,
+                }}
+              >
+                {checkoutLoading ? 'Apro Stripe…' : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
+              </button>
+            )}
+            <Link href="/dashboard" style={{
               padding: '12px 20px',
               borderRadius: 999,
               border: '1px solid rgba(0,0,0,0.08)',
@@ -234,9 +250,12 @@ export default function AppAccessPage({ slug }: { slug: string }) {
               fontWeight: 700,
               fontSize: 14,
             }}>
-              Scopri i dettagli
+              Torna alla dashboard
             </Link>
           </div>
+          {checkoutError ? (
+            <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>{checkoutError}</p>
+          ) : null}
         </div>
       </div>
     );
