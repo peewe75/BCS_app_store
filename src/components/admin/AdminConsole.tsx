@@ -55,6 +55,16 @@ type PaymentEvent = {
 
 type Tab = 'overview' | 'users' | 'payments' | 'hub' | 'apps';
 
+type DbPlanRow = {
+  app_id: string;
+  plan_code: string;
+  billing_type: string | null;
+  stripe_price_id: string | null;
+  grant_plan: string | null;
+  features: string[] | null;
+  is_active: boolean | null;
+};
+
 /* ─── Helpers ─── */
 
 function getEventLabel(type: string): string {
@@ -148,6 +158,13 @@ function AdminConsoleContent() {
   const [paymentsData, setPaymentsData] = useState<PaymentEvent[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
 
+  // Plan features config state
+  const [planConfigApp, setPlanConfigApp] = useState<FullApp | null>(null);
+  const [dbPlans, setDbPlans] = useState<DbPlanRow[]>([]);
+  const [editingFeatures, setEditingFeatures] = useState<Record<string, string[]>>({});
+  const [newFeatureInput, setNewFeatureInput] = useState<Record<string, string>>({});
+  const [featuresSaving, setFeaturesSaving] = useState<string | null>(null);
+
   // Load overview
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +225,48 @@ function AdminConsoleContent() {
     if (tab === 'users') void loadUsers();
     if (tab === 'payments') void loadPayments();
   }, [tab, loadApps, loadUsers, loadPayments]);
+
+  // Load plan features from DB for a given app
+  const loadPlanFeatures = useCallback(async (app: FullApp) => {
+    setPlanConfigApp(app);
+    setDbPlans([]);
+    setEditingFeatures({});
+    setNewFeatureInput({});
+    try {
+      const res = await fetch(`/api/admin/plan-features?app_id=${app.id}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (res.ok && json.plans) {
+        const rows = json.plans as DbPlanRow[];
+        setDbPlans(rows);
+        const feats: Record<string, string[]> = {};
+        for (const row of rows) {
+          feats[row.plan_code] = row.features ?? [];
+        }
+        setEditingFeatures(feats);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  // Save features for a single plan
+  const handleSaveFeatures = useCallback(async (appId: string, planCode: string) => {
+    setFeaturesSaving(planCode);
+    try {
+      const features = editingFeatures[planCode] ?? [];
+      const res = await fetch('/api/admin/plan-features', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_id: appId, plan_code: planCode, features }),
+      });
+      if (res.ok) {
+        setToastMsg(`Piano "${planCode}" aggiornato.`);
+      } else {
+        const json = await res.json();
+        setToastMsg(`Errore: ${json.error ?? 'Salvataggio fallito'}`);
+      }
+    } catch { setToastMsg('Errore di rete.'); } finally {
+      setFeaturesSaving(null);
+    }
+  }, [editingFeatures]);
 
   // Toast auto-dismiss
   useEffect(() => {
@@ -754,6 +813,23 @@ function AdminConsoleContent() {
                           Admin ↗
                         </a>
                       )}
+                      {cfg?.plans && cfg.plans.length > 0 && (
+                        <button
+                          onClick={() => void loadPlanFeatures(app)}
+                          style={{
+                            padding: '10px 18px',
+                            borderRadius: 100,
+                            border: '1px solid rgba(0,0,0,0.1)',
+                            background: '#F5F5F7',
+                            color: '#444',
+                            fontWeight: 700,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⚙️ Piani
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
@@ -877,6 +953,178 @@ function AdminConsoleContent() {
             </section>
           )}
         </>
+      )}
+
+      {/* ─── Plan Features Modal ─── */}
+      {planConfigApp && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setPlanConfigApp(null); }}
+        >
+          <div style={{
+            background: '#fff', borderRadius: 28, padding: 32, width: '100%', maxWidth: 780,
+            maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+              <div>
+                <p style={{ margin: 0, color: accent, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Configurazione Piani</p>
+                <h2 style={{ margin: '4px 0 4px', fontSize: 22 }}>{planConfigApp.name}</h2>
+                <p style={{ margin: 0, fontSize: 13, color: '#6E6E73' }}>
+                  Definisci le funzionalità incluse in ciascun piano. L&apos;admin ha sempre accesso completo.
+                </p>
+              </div>
+              <button
+                onClick={() => setPlanConfigApp(null)}
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#F5F5F7', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >×</button>
+            </div>
+
+            {/* Admin always full access badge */}
+            <div style={{
+              marginBottom: 24, padding: '12px 18px', borderRadius: 14,
+              background: `${accent}0D`, border: `1px solid ${accent}25`,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>🛡️</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: accent }}>Accesso Admin</p>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6E6E73' }}>Gli admin hanno sempre accesso completo a tutte le funzionalità, indipendentemente dal piano.</p>
+              </div>
+            </div>
+
+            {dbPlans.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 32, color: '#999', fontSize: 14 }}>
+                Nessun piano trovato nel DB per questa app.<br />
+                <span style={{ fontSize: 12 }}>Assicurati che i piani siano inseriti in <code>app_billing_plans</code>.</span>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 20 }}>
+                {dbPlans.map((row) => {
+                  const planCfg = APP_PLAN_CONFIG[planConfigApp.id]?.plans?.find((p) => p.code === row.plan_code);
+                  const features = editingFeatures[row.plan_code] ?? [];
+                  const inputVal = newFeatureInput[row.plan_code] ?? '';
+                  const isSaving = featuresSaving === row.plan_code;
+                  const planAccentColor = planConfigApp.accent_color ?? accent;
+
+                  return (
+                    <div key={row.plan_code} style={{
+                      padding: 24, borderRadius: 18, background: '#FAFAFA',
+                      border: '1px solid rgba(0,0,0,0.07)',
+                    }}>
+                      {/* Plan header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{
+                              padding: '3px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
+                              background: `${planAccentColor}15`, color: planAccentColor,
+                            }}>
+                              {planCfg?.label ?? row.plan_code}
+                            </span>
+                            {row.billing_type && (
+                              <span style={{ fontSize: 11, color: '#999', fontWeight: 600 }}>{row.billing_type}</span>
+                            )}
+                            {!row.is_active && (
+                              <span style={{ padding: '2px 8px', borderRadius: 100, fontSize: 10, fontWeight: 700, background: '#FEE2E2', color: '#991B1B' }}>Inattivo</span>
+                            )}
+                          </div>
+                          {planCfg?.description && (
+                            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6E6E73' }}>{planCfg.description}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => void handleSaveFeatures(planConfigApp.id, row.plan_code)}
+                          disabled={isSaving}
+                          style={{
+                            padding: '9px 20px', borderRadius: 100,
+                            background: isSaving ? '#999' : planAccentColor,
+                            color: '#fff', border: 'none', fontWeight: 700, fontSize: 13,
+                            cursor: isSaving ? 'default' : 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          {isSaving ? 'Salvataggio…' : 'Salva'}
+                        </button>
+                      </div>
+
+                      {/* Feature list */}
+                      <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+                        {features.length === 0 && (
+                          <p style={{ margin: 0, fontSize: 13, color: '#bbb', fontStyle: 'italic' }}>Nessuna funzionalità definita.</p>
+                        )}
+                        {features.map((feat, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '10px 14px', borderRadius: 10,
+                            background: '#fff', border: '1px solid rgba(0,0,0,0.07)',
+                          }}>
+                            <span style={{ color: '#059669', fontSize: 14, flexShrink: 0 }}>✓</span>
+                            <span style={{ flex: 1, fontSize: 13, color: '#1D1D1F' }}>{feat}</span>
+                            <button
+                              onClick={() => {
+                                setEditingFeatures((prev) => ({
+                                  ...prev,
+                                  [row.plan_code]: prev[row.plan_code]?.filter((_, i) => i !== idx) ?? [],
+                                }));
+                              }}
+                              style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', background: '#fff', cursor: 'pointer', fontSize: 14, color: '#999', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add feature input */}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          value={inputVal}
+                          placeholder="Aggiungi funzionalità…"
+                          onChange={(e) => setNewFeatureInput((prev) => ({ ...prev, [row.plan_code]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && inputVal.trim()) {
+                              setEditingFeatures((prev) => ({
+                                ...prev,
+                                [row.plan_code]: [...(prev[row.plan_code] ?? []), inputVal.trim()],
+                              }));
+                              setNewFeatureInput((prev) => ({ ...prev, [row.plan_code]: '' }));
+                            }
+                          }}
+                          style={{
+                            flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)',
+                            fontSize: 13, outline: 'none', background: '#fff',
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (!inputVal.trim()) return;
+                            setEditingFeatures((prev) => ({
+                              ...prev,
+                              [row.plan_code]: [...(prev[row.plan_code] ?? []), inputVal.trim()],
+                            }));
+                            setNewFeatureInput((prev) => ({ ...prev, [row.plan_code]: '' }));
+                          }}
+                          style={{
+                            padding: '10px 18px', borderRadius: 10, border: 'none',
+                            background: '#1D1D1F', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          }}
+                        >
+                          + Aggiungi
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <button
+              onClick={() => setPlanConfigApp(null)}
+              style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: '#F5F5F7', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#444' }}
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Modal */}

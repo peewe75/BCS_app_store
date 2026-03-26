@@ -5,31 +5,78 @@ export interface PlanTier {
   code: string;
   label: string;
   description?: string;
+  /** Default feature list — can be overridden by admin via app_billing_plans.features in DB */
+  features?: string[];
 }
 
 /** Static plan config and admin URLs per app (not stored in Supabase). */
 export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: string }> = {
   softi: {
     plans: [
-      { code: 'free', label: 'Gratuito', description: 'Accesso limitato' },
-      { code: 'monthly', label: 'Mensile', description: 'Accesso completo' },
+      {
+        code: 'free',
+        label: 'Gratuito',
+        description: 'Accesso limitato',
+        features: [
+          'Fino a 3 asset selezionabili',
+          '5 analisi AI al giorno',
+          'Report giornaliero (solo testo)',
+          'Feed dati base (Google Finance, Yahoo Finance)',
+        ],
+      },
+      {
+        code: 'monthly',
+        label: 'Mensile — €29/mese',
+        description: 'Accesso completo',
+        features: [
+          'Asset illimitati',
+          'Analisi AI illimitate',
+          'Report giornaliero, settimanale e mensile',
+          'Segnali MT5 live',
+          'Tutti i feed di mercato (Alpha Vantage, Finnhub, Marketaux)',
+          'Analisi multi-timeframe',
+          'Accesso prioritario alle nuove funzionalità',
+        ],
+      },
     ],
     admin_url: 'https://softi-ai-analyzer.onrender.com/admin',
   },
   trading: {
-    plans: [{ code: 'one_time', label: 'Acquisto unico' }],
+    plans: [
+      {
+        code: 'one_time',
+        label: 'Acquisto unico — €9,90',
+        features: ['Report fiscale completo', 'Supporto tutti i broker', 'Download PDF', 'Storico calcoli'],
+      },
+    ],
   },
   ravvedimento: {
     plans: [
-      { code: 'free', label: 'Gratuito', description: 'Accesso base' },
-      { code: 'monthly', label: 'Mensile', description: 'Accesso completo' },
+      {
+        code: 'free',
+        label: 'Gratuito',
+        description: 'Accesso base',
+        features: ['3 calcoli al mese', 'Imposte principali', 'Esportazione base'],
+      },
+      {
+        code: 'monthly',
+        label: 'Mensile — €19/mese',
+        description: 'Accesso completo',
+        features: ['Calcoli illimitati', 'Tutte le imposte', 'Storico completo', 'Esportazione PDF/Excel'],
+      },
     ],
   },
   ugc: {
-    plans: [{ code: 'base', label: 'Base' }],
+    plans: [{ code: 'base', label: 'Base', features: ['5 video al mese', 'Formato HD', 'Template base'] }],
   },
   'ai-crisi': {
-    plans: [{ code: 'monthly', label: 'Mensile' }],
+    plans: [
+      {
+        code: 'monthly',
+        label: 'Mensile — €30/mese',
+        features: ['Fascicoli illimitati', 'Knowledge base CCII', 'Generazione atti AI', 'Area admin studio'],
+      },
+    ],
     admin_url: 'https://ai-crisi.vercel.app/admin',
   },
 };
