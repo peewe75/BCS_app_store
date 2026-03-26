@@ -276,7 +276,7 @@ const STATIC_APPS: AppRecord[] = [
     pricing_model: 'subscription',
     price_label: 'Piano pro',
     cta_text: 'Apri Softi AI',
-    cta_href: null,
+    cta_href: 'https://softi-ai-analyzer.onrender.com',
     is_internal: false,
     internal_route: null,
     video_src: null,
