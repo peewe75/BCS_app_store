@@ -10,12 +10,14 @@ import ForfApp from '@/src/features/ForfApp';
 import RavvedimentoApp from '@/src/features/RavvedimentoApp';
 import TradingWorkspace from '@/src/components/apps/TradingWorkspace';
 import UgcWorkspace from '@/src/components/apps/UgcWorkspace';
+import SoftiWorkspace from '@/src/components/apps/SoftiWorkspace';
 
 const INTERNAL_COMPONENTS: Record<string, React.ComponentType> = {
   forf: ForfApp,
   ravvedimento: RavvedimentoApp,
   trading: TradingWorkspace,
   ugc: UgcWorkspace,
+  softi: SoftiWorkspace,
 };
 
 function isFreeApp(app: AppRecord) {
