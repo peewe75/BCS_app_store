@@ -400,7 +400,7 @@ const STATIC_APPS: AppRecord[] = [
     is_internal: false,
     internal_route: null,
     video_src: null,
-    poster_src: null,
+    poster_src: '/images/Softi.png',
     layout: 'text-left',
     sort_order: 6,
     is_active: true,
