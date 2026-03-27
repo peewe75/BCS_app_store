@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
 import { hasSupabaseAdminConfig } from '@/src/lib/env';
+import {
+  extractSupportedImageBase64,
+  InvalidUgcImageError,
+} from '@/src/apps/ugc/image-data';
 
 export const maxDuration = 60;
 
@@ -60,11 +64,11 @@ export async function POST(req: Request) {
 
     const modelName = 'gemini-2.5-flash-image';
 
-    const parts: { inlineData?: { mimeType: 'image/png'; data: string }; text?: string }[] = [];
+    const parts: { inlineData?: { mimeType: string; data: string }; text?: string }[] = [];
 
     if (body.referenceImageBase64) {
-      const cleanData = body.referenceImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
-      parts.push({ inlineData: { mimeType: 'image/png', data: cleanData } });
+      const { mimeType, data } = extractSupportedImageBase64(body.referenceImageBase64);
+      parts.push({ inlineData: { mimeType, data } });
     }
     parts.push({ text: body.prompt });
 
@@ -79,12 +83,17 @@ export async function POST(req: Request) {
 
     for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.inlineData) {
-        return NextResponse.json({ image: `data:image/png;base64,${part.inlineData.data}` });
+        return NextResponse.json({
+          image: `data:${part.inlineData.mimeType ?? 'image/png'};base64,${part.inlineData.data}`,
+        });
       }
     }
 
     return NextResponse.json({ error: 'Nessuna immagine generata dal modello' }, { status: 500 });
   } catch (err) {
+    if (err instanceof InvalidUgcImageError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     console.error('[ugc/image]', err);
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Errore interno' }, { status: 500 });
   }

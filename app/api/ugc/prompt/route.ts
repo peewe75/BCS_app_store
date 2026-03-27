@@ -1,6 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import {
+  extractSupportedImageBase64,
+  InvalidUgcImageError,
+} from '@/src/apps/ugc/image-data';
 
 export const maxDuration = 60;
 
@@ -27,8 +31,8 @@ export async function POST(req: Request) {
     const ai = new GoogleGenAI({ apiKey });
 
     const imageParts = body.imagesBase64.map((img: string) => {
-      const data = img.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
-      return { inlineData: { mimeType: 'image/png' as const, data } };
+      const { mimeType, data } = extractSupportedImageBase64(img);
+      return { inlineData: { mimeType, data } };
     });
 
     let creativityInstruction = 'Balance creativity with product clarity.';
@@ -80,6 +84,9 @@ Output ONLY the image generation prompt text.`,
     const prompt = response.text ?? 'A high quality photo of the product.';
     return NextResponse.json({ prompt });
   } catch (err) {
+    if (err instanceof InvalidUgcImageError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     console.error('[ugc/prompt]', err);
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Errore interno' }, { status: 500 });
   }

@@ -1,6 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import {
+  extractSupportedImageBase64,
+  InvalidUgcImageError,
+} from '@/src/apps/ugc/image-data';
 
 export const maxDuration = 60;
 
@@ -21,15 +25,15 @@ export async function POST(req: Request) {
     };
 
     const ai = new GoogleGenAI({ apiKey });
-    const data = body.generatedImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+    const { mimeType, data } = extractSupportedImageBase64(body.generatedImageBase64);
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { mimeType: 'image/png' as const, data } },
+          { inlineData: { mimeType, data } },
           {
-            text: `Analyze this lifestyle image. Create a video generation prompt for Veo.
+        text: `Analyze this lifestyle image. Create a Veo 3 video generation prompt.
 
 Context:
 - Format: ${body.ugcStyle}
@@ -39,9 +43,9 @@ Context:
 
 Instructions:
 1. Describe a video movement of roughly 8 seconds.
-2. AUDIO / SPEECH: The prompt MUST explicitly request audio. If there are people, they MUST SPEAK IN ${body.language}.
-3. TIMING & ENDING: Duration ~8 seconds. The subject MUST STOP SPEAKING AND MOVING completely by the 7th second. Last second must show subject static and silent for a clean ending.
-4. IMPORTANT: Write the description in ${body.promptLanguage} so the user can read and edit it.
+2. AUDIO / SPEECH: The prompt MUST explicitly request native audio. If there are people, they MUST speak in ${body.language}.
+3. TIMING & ENDING: Duration ~8 seconds. The subject MUST stop speaking and moving completely by the 7th second. Last second must show subject static and silent for a clean ending.
+4. IMPORTANT: Veo 3 prompts should be written in English. Write the final prompt in English, but keep all spoken dialogue explicitly in ${body.language}.
 
 Output ONLY the prompt text.`,
           },
@@ -52,6 +56,9 @@ Output ONLY the prompt text.`,
     const prompt = response.text ?? 'Cinematic slow motion shot with audio.';
     return NextResponse.json({ prompt });
   } catch (err) {
+    if (err instanceof InvalidUgcImageError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     console.error('[ugc/video-prompt]', err);
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Errore interno' }, { status: 500 });
   }

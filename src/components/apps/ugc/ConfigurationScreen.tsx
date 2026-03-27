@@ -148,7 +148,7 @@ export function ConfigurationScreen(props: ConfigurationScreenProps) {
                   type="file"
                   ref={fileInputRef}
                   onChange={props.onUpload}
-                  accept="image/*"
+                  accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                   multiple
                   style={{ display: 'none' }}
                 />

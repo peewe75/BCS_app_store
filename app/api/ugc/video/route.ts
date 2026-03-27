@@ -1,20 +1,68 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+import { readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { hasSupabaseAdminConfig } from '@/src/lib/env';
+import { env, hasGeminiApiKey, hasSupabaseAdminConfig } from '@/src/lib/env';
+import {
+  extractSupportedImageBase64,
+  InvalidUgcImageError,
+} from '@/src/apps/ugc/image-data';
+import { getGeminiServerClient } from '@/src/lib/google-genai';
 
-// Veo generation can take 60-90s — requires Vercel Pro for maxDuration > 60
 export const maxDuration = 300;
+
+const VIDEO_COST = 75;
+const MAX_ATTEMPTS = 40;
+const POLL_DELAY_MS = 5000;
+const VEO_AUDIO_MODEL_DEFAULT = 'veo-3.1-generate-preview';
+const VEO_REQUIRED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg']);
+
+async function downloadGeneratedVideoBase64(
+  ai: NonNullable<ReturnType<typeof getGeminiServerClient>>,
+  generatedVideo: { mimeType?: string; videoBytes?: string },
+) {
+  if (generatedVideo.videoBytes) {
+    return {
+      mimeType: generatedVideo.mimeType ?? 'video/mp4',
+      videoBase64: generatedVideo.videoBytes,
+    };
+  }
+
+  const tempPath = join(tmpdir(), `ugc-veo-${crypto.randomUUID()}.mp4`);
+
+  try {
+    await ai.files.download({
+      file: generatedVideo,
+      downloadPath: tempPath,
+    });
+
+    const buffer = await readFile(tempPath);
+    return {
+      mimeType: generatedVideo.mimeType ?? 'video/mp4',
+      videoBase64: buffer.toString('base64'),
+    };
+  } finally {
+    await rm(tempPath, { force: true }).catch(() => undefined);
+  }
+}
 
 export async function POST(req: Request) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
+  if (!hasGeminiApiKey()) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY non configurata.' }, { status: 500 });
+  }
 
-  // Credit check (skip for admin)
+  const ai = getGeminiServerClient();
+  if (!ai) {
+    return NextResponse.json({ error: 'Client Gemini non disponibile.' }, { status: 503 });
+  }
+
   if (hasSupabaseAdminConfig()) {
     const clerkUser = await currentUser();
     const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin';
@@ -22,7 +70,6 @@ export async function POST(req: Request) {
     if (!isAdmin) {
       const supabase = createSupabaseAdminClient();
       if (supabase) {
-        // Check credits
         const { data: creditRow } = await supabase
           .from('user_credits')
           .select('credits')
@@ -32,7 +79,6 @@ export async function POST(req: Request) {
 
         const currentCredits = (creditRow?.credits as number | null) ?? 0;
 
-        const VIDEO_COST = 75;
         if (currentCredits < VIDEO_COST) {
           return NextResponse.json(
             { error: `Crediti insufficienti. Il video richiede ${VIDEO_COST} crediti (hai ${currentCredits}).` },
@@ -40,7 +86,6 @@ export async function POST(req: Request) {
           );
         }
 
-        // Decrement credits
         await supabase
           .from('user_credits')
           .update({ credits: currentCredits - VIDEO_COST })
@@ -52,54 +97,74 @@ export async function POST(req: Request) {
 
   try {
     const body = (await req.json()) as { imageBase64: string; prompt: string };
+    const { mimeType, data } = extractSupportedImageBase64(body.imageBase64);
 
-    const ai = new GoogleGenAI({ apiKey });
-    const data = body.imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+    if (!VEO_REQUIRED_IMAGE_MIME_TYPES.has(mimeType)) {
+      return NextResponse.json(
+        { error: 'Veo 3.1 accetta solo immagini PNG o JPG come frame iniziale.' },
+        { status: 400 },
+      );
+    }
 
     let operation = await ai.models.generateVideos({
-      model: 'veo-2.0-generate-001',
+      model: env.veoAudioModel || VEO_AUDIO_MODEL_DEFAULT,
       prompt: body.prompt,
-      image: { imageBytes: data, mimeType: 'image/png' },
-      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' },
+      image: { imageBytes: data, mimeType },
+      config: {
+        numberOfVideos: 1,
+        durationSeconds: 8,
+        resolution: '720p',
+        aspectRatio: '16:9',
+      },
     });
 
-    const MAX_ATTEMPTS = 40;
     let attempts = 0;
-
     while (!operation.done) {
-      attempts++;
+      attempts += 1;
       if (attempts > MAX_ATTEMPTS) {
-        return NextResponse.json({ error: 'Timeout generazione video. Il server sta impiegando troppo tempo.' }, { status: 504 });
+        return NextResponse.json(
+          { error: 'Timeout generazione video. Il server sta impiegando troppo tempo.' },
+          { status: 504 },
+        );
       }
-      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY_MS));
       operation = await ai.operations.getVideosOperation({ operation });
 
       if (operation.error) {
-        return NextResponse.json({ error: `Veo API Error: ${operation.error.message ?? 'Unknown error'}` }, { status: 500 });
+        return NextResponse.json(
+          { error: `Veo API Error: ${operation.error.message ?? 'Unknown error'}` },
+          { status: 500 },
+        );
       }
     }
 
     if (operation.error) {
-      return NextResponse.json({ error: `Veo API Error: ${operation.error.message}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `Veo API Error: ${operation.error.message ?? 'Unknown error'}` },
+        { status: 500 },
+      );
     }
 
-    const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!videoUri) {
-      return NextResponse.json({ error: 'Video generato ma nessun URI restituito. Possibile filtro di sicurezza.' }, { status: 500 });
+    const generatedVideo = operation.response?.generatedVideos?.[0]?.video;
+    if (!generatedVideo) {
+      return NextResponse.json(
+        { error: 'Video generato ma nessun payload video restituito da Veo 3.1.' },
+        { status: 500 },
+      );
     }
 
-    // Download video and return as base64 so the client can create a blob URL
-    const videoResponse = await fetch(`${videoUri}&key=${apiKey}`);
-    if (!videoResponse.ok) {
-      return NextResponse.json({ error: `Errore download video: ${videoResponse.status}` }, { status: 500 });
-    }
-
-    const buffer = await videoResponse.arrayBuffer();
-    const videoBase64 = Buffer.from(buffer).toString('base64');
-
-    return NextResponse.json({ videoBase64 });
+    const downloadedVideo = await downloadGeneratedVideoBase64(ai, generatedVideo);
+    return NextResponse.json(downloadedVideo);
   } catch (err) {
+    if (err instanceof InvalidUgcImageError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
     console.error('[ugc/video]', err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Errore interno' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Errore interno' },
+      { status: 500 },
+    );
   }
 }

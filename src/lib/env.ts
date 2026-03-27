@@ -40,6 +40,10 @@ export const env = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  veoAudioModel:
+    process.env.VEO_AUDIO_MODEL ??
+    'veo-3.1-generate-preview',
 };
 
 export function hasClerkServerConfig() {
@@ -56,4 +60,8 @@ export function hasSupabaseAdminConfig() {
 
 export function hasStripeConfig() {
   return Boolean(env.stripeSecretKey);
+}
+
+export function hasGeminiApiKey() {
+  return Boolean(env.geminiApiKey);
 }

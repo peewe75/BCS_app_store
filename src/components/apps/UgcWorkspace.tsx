@@ -14,6 +14,8 @@ import {
 
 const IMAGE_COST = 25;
 const VIDEO_COST = 75;
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 type CreditsModalState = {
   required: number;
@@ -185,8 +187,27 @@ export default function UgcWorkspace() {
       return;
     }
 
+    const validFiles = filesToProcess.filter((file) => {
+      if (!ALLOWED_UPLOAD_MIME_TYPES.has(file.type)) {
+        addLog(`Formato non supportato per "${file.name}". Carica PNG, JPG o WEBP.`, 'error');
+        return false;
+      }
+
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+        addLog(`"${file.name}" supera il limite di 10MB.`, 'error');
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      if (event.target) event.target.value = '';
+      return;
+    }
+
     let processedCount = 0;
-    filesToProcess.forEach((file) => {
+    validFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setData((prev) => ({
@@ -194,7 +215,7 @@ export default function UgcWorkspace() {
           productImages: [...prev.productImages, reader.result as string],
         }));
         processedCount += 1;
-        if (processedCount === filesToProcess.length) {
+        if (processedCount === validFiles.length) {
           addLog(`${processedCount} image(s) uploaded successfully.`, 'success');
         }
       };
@@ -280,7 +301,7 @@ export default function UgcWorkspace() {
         ugcStyle,
         platform,
         language,
-        promptLanguage: 'Italian',
+        promptLanguage: 'English',
       });
 
       setData((prev) => ({ ...prev, videoPrompt: vidPrompt }));
