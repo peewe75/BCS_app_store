@@ -104,7 +104,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
     ],
     limitKeys: [
-      { key: 'video_credits', label: 'Crediti inclusi', type: 'credits' as const, default: 100 },
+      { key: 'video_credits', label: 'Crediti inclusi', type: 'credits' as const, default: 1000 },
     ],
   },
   'ai-crisi': {
