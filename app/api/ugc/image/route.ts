@@ -1,8 +1,12 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
+import { hasSupabaseAdminConfig } from '@/src/lib/env';
 
 export const maxDuration = 60;
+
+const IMAGE_COST = 25;
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -10,6 +14,39 @@ export async function POST(req: Request) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
+
+  // Credit check (skip for admin)
+  if (hasSupabaseAdminConfig()) {
+    const clerkUser = await currentUser();
+    const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin';
+
+    if (!isAdmin) {
+      const supabase = createSupabaseAdminClient();
+      if (supabase) {
+        const { data: creditRow } = await supabase
+          .from('user_credits')
+          .select('credits')
+          .eq('user_id', userId)
+          .eq('app_id', 'ugc')
+          .maybeSingle();
+
+        const currentCredits = (creditRow?.credits as number | null) ?? 0;
+
+        if (currentCredits < IMAGE_COST) {
+          return NextResponse.json(
+            { error: `Crediti insufficienti. L'immagine richiede ${IMAGE_COST} crediti (hai ${currentCredits}).` },
+            { status: 402 },
+          );
+        }
+
+        await supabase
+          .from('user_credits')
+          .update({ credits: currentCredits - IMAGE_COST })
+          .eq('user_id', userId)
+          .eq('app_id', 'ugc');
+      }
+    }
+  }
 
   try {
     const body = (await req.json()) as {
@@ -21,10 +58,7 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Google image generation currently uses Gemini 2.5 Flash Image.
-    const modelName = body.mode === 'quality'
-      ? 'gemini-2.5-flash-image'
-      : 'gemini-2.5-flash-image';
+    const modelName = 'gemini-2.5-flash-image';
 
     const parts: { inlineData?: { mimeType: 'image/png'; data: string }; text?: string }[] = [];
 

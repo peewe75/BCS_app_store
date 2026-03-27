@@ -32,9 +32,10 @@ export async function POST(req: Request) {
 
         const currentCredits = (creditRow?.credits as number | null) ?? 0;
 
-        if (currentCredits < 1) {
+        const VIDEO_COST = 75;
+        if (currentCredits < VIDEO_COST) {
           return NextResponse.json(
-            { error: 'Crediti UGC esauriti. Acquista un nuovo pacchetto.' },
+            { error: `Crediti insufficienti. Il video richiede ${VIDEO_COST} crediti (hai ${currentCredits}).` },
             { status: 402 },
           );
         }
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
         // Decrement credits
         await supabase
           .from('user_credits')
-          .update({ credits: currentCredits - 1 })
+          .update({ credits: currentCredits - VIDEO_COST })
           .eq('user_id', userId)
           .eq('app_id', 'ugc');
       }

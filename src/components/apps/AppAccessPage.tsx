@@ -36,6 +36,9 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [redeemOpen, setRedeemOpen] = useState(false);
+  const [claimFreeLoading, setClaimFreeLoading] = useState(false);
+  const [claimFreeError, setClaimFreeError] = useState<string | null>(null);
+  const [claimFreeSuccess, setClaimFreeSuccess] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +119,27 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     }
   };
 
-  const handleCheckout = async () => {
+  const isCreditsApp = useMemo(
+    () => APP_PLAN_CONFIG[app?.id ?? '']?.limitKeys?.some((k) => k.type === 'credits') ?? false,
+    [app?.id],
+  );
+
+  const handleClaimFree = async () => {
+    if (claimFreeLoading) return;
+    setClaimFreeLoading(true);
+    setClaimFreeError(null);
+    const res = await fetch(`/api/ugc/claim-free`, { method: 'POST' });
+    const json = await res.json() as { credits?: number; message?: string; error?: string };
+    setClaimFreeLoading(false);
+    if (res.ok) {
+      setClaimFreeSuccess(true);
+      setGrant({ app_id: app?.id ?? '', plan: 'free', expires_at: null });
+    } else {
+      setClaimFreeError(json.error ?? 'Errore durante il riscatto.');
+    }
+  };
+
+  const handleCheckout = async (planCode = 'default') => {
     if (!app || checkoutLoading) {
       return;
     }
@@ -130,7 +153,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
       },
       body: JSON.stringify({
         appId: app.id,
-        planCode: 'default',
+        planCode,
       }),
     });
     const rawText = await response.text();
@@ -248,46 +271,100 @@ export default function AppAccessPage({ slug }: { slug: string }) {
               </div>
             </div>
           )}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-            {hasPaidPlan && (
+          {/* UGC / app a crediti: pulsanti dedicati */}
+          {isCreditsApp ? (
+            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Generazione gratuita */}
               <button
                 type="button"
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
+                onClick={() => void handleClaimFree()}
+                disabled={claimFreeLoading || claimFreeSuccess}
                 style={{
-                  border: 'none',
-                  borderRadius: 999,
-                  background: accentColor,
-                  color: '#fff',
-                  padding: '12px 20px',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: checkoutLoading ? 'default' : 'pointer',
-                  opacity: checkoutLoading ? 0.7 : 1,
+                  border: 'none', borderRadius: 999,
+                  background: claimFreeSuccess ? '#059669' : accentColor,
+                  color: '#fff', padding: '13px 22px',
+                  fontWeight: 700, fontSize: 14,
+                  cursor: (claimFreeLoading || claimFreeSuccess) ? 'default' : 'pointer',
+                  opacity: claimFreeLoading ? 0.7 : 1,
+                  alignSelf: 'flex-start',
                 }}
               >
-                {checkoutLoading
-                  ? 'Apro Stripe…'
-                  : trialDays
-                    ? `${trialDays} giorni gratis, poi ${app.price_label ?? 'Abbonati'}`
-                    : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
+                {claimFreeSuccess ? '✓ Credito gratuito attivato! Aggiorna la pagina' : claimFreeLoading ? 'Attivazione…' : '🎁 Ottieni 1 generazione gratuita'}
               </button>
-            )}
-            <Link href="/dashboard" style={{
-              padding: '12px 20px',
-              borderRadius: 999,
-              border: '1px solid rgba(0,0,0,0.08)',
-              textDecoration: 'none',
-              color: '#1D1D1F',
-              fontWeight: 700,
-              fontSize: 14,
-            }}>
-              Torna alla dashboard
-            </Link>
-          </div>
-          {checkoutError ? (
-            <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>{checkoutError}</p>
-          ) : null}
+              {claimFreeError && (
+                <p style={{ margin: 0, color: '#b42318', fontSize: 13, fontWeight: 600 }}>{claimFreeError}</p>
+              )}
+
+              {/* Separatore */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+                <span style={{ color: '#9CA3AF', fontSize: 13 }}>oppure</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+              </div>
+
+              {/* Acquisto pacchetto crediti */}
+              <button
+                type="button"
+                onClick={() => void handleCheckout('credits')}
+                disabled={checkoutLoading}
+                style={{
+                  border: `2px solid ${accentColor}`, borderRadius: 999,
+                  background: '#fff', color: accentColor,
+                  padding: '13px 22px', fontWeight: 700, fontSize: 14,
+                  cursor: checkoutLoading ? 'default' : 'pointer',
+                  opacity: checkoutLoading ? 0.7 : 1,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                {checkoutLoading ? 'Apro Stripe…' : '💳 Acquista 100 crediti — €9,60'}
+              </button>
+              {checkoutError ? (
+                <p style={{ margin: 0, color: '#b42318', fontWeight: 600, fontSize: 13 }}>{checkoutError}</p>
+              ) : null}
+              <Link href="/dashboard" style={{
+                padding: '12px 20px', borderRadius: 999, alignSelf: 'flex-start',
+                border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none',
+                color: '#1D1D1F', fontWeight: 700, fontSize: 14,
+              }}>
+                Torna alla dashboard
+              </Link>
+            </div>
+          ) : (
+            /* Tutti gli altri app: pulsante abbonamento standard */
+            <>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+                {hasPaidPlan && (
+                  <button
+                    type="button"
+                    onClick={() => void handleCheckout()}
+                    disabled={checkoutLoading}
+                    style={{
+                      border: 'none', borderRadius: 999, background: accentColor,
+                      color: '#fff', padding: '12px 20px', fontWeight: 700, fontSize: 14,
+                      cursor: checkoutLoading ? 'default' : 'pointer',
+                      opacity: checkoutLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {checkoutLoading
+                      ? 'Apro Stripe…'
+                      : trialDays
+                        ? `${trialDays} giorni gratis, poi ${app.price_label ?? 'Abbonati'}`
+                        : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
+                  </button>
+                )}
+                <Link href="/dashboard" style={{
+                  padding: '12px 20px', borderRadius: 999,
+                  border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none',
+                  color: '#1D1D1F', fontWeight: 700, fontSize: 14,
+                }}>
+                  Torna alla dashboard
+                </Link>
+              </div>
+              {checkoutError ? (
+                <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>{checkoutError}</p>
+              ) : null}
+            </>
+          )}
 
           {/* Redeem code box */}
           <div style={{ marginTop: 20 }}>

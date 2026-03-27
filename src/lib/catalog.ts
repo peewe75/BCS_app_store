@@ -89,9 +89,22 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
     ],
   },
   ugc: {
-    plans: [{ code: 'base', label: 'Base', features: ['5 video al mese', 'Formato HD', 'Template base'] }],
+    plans: [
+      {
+        code: 'free',
+        label: 'Gratuito',
+        description: '1 generazione di prova',
+        features: ['1 credito di prova', 'Generazione immagine (25 crediti)', 'Generazione video UGC (75 crediti)'],
+      },
+      {
+        code: 'credits',
+        label: '100 Crediti — €9,60',
+        description: 'Pacchetto crediti ricaricabile',
+        features: ['100 crediti', '~4 video UGC completi', 'Crediti cumulabili', 'Nessuna scadenza'],
+      },
+    ],
     limitKeys: [
-      { key: 'video_credits', label: 'Crediti video', type: 'credits', default: 10 },
+      { key: 'video_credits', label: 'Crediti inclusi', type: 'credits' as const, default: 100 },
     ],
   },
   'ai-crisi': {
