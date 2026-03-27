@@ -12,6 +12,7 @@ const APP_IMAGES: Record<string, string> = {
   trading: '/images/3.png',
   ravvedimento: '/images/4.png',
   forf: '/images/ForfApp.png',
+  softi: '/images/Softi.png',
 };
 
 const CTA_COPY: Record<string, string> = {
