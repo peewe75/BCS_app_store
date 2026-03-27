@@ -98,9 +98,9 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
       {
         code: 'credits',
-        label: '100 Crediti — €9,60',
+        label: '1000 Crediti — €9,60',
         description: 'Pacchetto crediti ricaricabile',
-        features: ['100 crediti', '~4 video UGC completi', 'Crediti cumulabili', 'Nessuna scadenza'],
+        features: ['1000 crediti', '~13 video UGC completi', '~40 immagini lifestyle', 'Crediti cumulabili', 'Nessuna scadenza'],
       },
     ],
     limitKeys: [

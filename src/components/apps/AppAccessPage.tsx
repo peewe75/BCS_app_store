@@ -316,7 +316,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
                   alignSelf: 'flex-start',
                 }}
               >
-                {checkoutLoading ? 'Apro Stripe…' : '💳 Acquista 100 crediti — €9,60'}
+                {checkoutLoading ? 'Apro Stripe…' : '💳 Acquista 1000 crediti — €9,60'}
               </button>
               {checkoutError ? (
                 <p style={{ margin: 0, color: '#b42318', fontWeight: 600, fontSize: 13 }}>{checkoutError}</p>
