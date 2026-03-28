@@ -50,18 +50,6 @@ export async function GET(
   const savedDraft = await getTextBlob(draftKey)
   const existingRecord = parseTaxFormPreviewRecord(savedDraft)
 
-  if (
-    existingRecord &&
-    (!storedScaleFactor || existingRecord.preview.account_extraction.scaleFactor === storedScaleFactor)
-  ) {
-    return NextResponse.json({
-      report: { id: report.id, filename: report.filename, year: report.year, status: report.status, created_at: report.created_at },
-      preview: existingRecord.preview,
-      savedAt: existingRecord.savedAt,
-      generatedAt: existingRecord.generatedAt,
-    })
-  }
-
   // Generate fresh preview
   const clerkUser = await currentUser()
   const profile = extractTaxProfileFromClerkUser(clerkUser)
@@ -75,13 +63,21 @@ export async function GET(
     sourceHtml,
     results,
     profile,
+    manualOverrides: existingRecord?.manualOverrides,
     scaleFactorOverride: storedScaleFactor ?? undefined,
-    internalPdfAvailable: false,
-    facsimilePdfAvailable: false,
+    internalPdfAvailable: Boolean(existingRecord?.internalPdfBlobKey ?? existingRecord?.preview.internal_pdf_available),
+    facsimilePdfAvailable: Boolean(existingRecord?.facsimilePdfBlobKey ?? existingRecord?.preview.facsimile_pdf_available),
   })
 
   // Save draft
-  const record = createTaxFormPreviewRecord({ reportId, preview })
+  const record = createTaxFormPreviewRecord({
+    reportId,
+    preview,
+    manualOverrides: existingRecord?.manualOverrides,
+    generatedAt: existingRecord?.generatedAt ?? null,
+    internalPdfBlobKey: existingRecord?.internalPdfBlobKey ?? null,
+    facsimilePdfBlobKey: existingRecord?.facsimilePdfBlobKey ?? null,
+  })
   await saveTextBlob(draftKey, JSON.stringify(record), 'application/json')
 
   return NextResponse.json({
