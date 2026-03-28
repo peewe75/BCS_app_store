@@ -2,22 +2,28 @@ import Link from 'next/link';
 import { getPublicApps } from '@/src/lib/catalog';
 import LandingHero from '@/src/components/landing/LandingHero';
 import LandingAppGrid from '@/src/components/landing/LandingAppGrid';
+import SocialProofBar from '@/src/components/landing/SocialProofBar';
+import FaqSection from '@/src/components/landing/FaqSection';
+import AppDelMese from '@/src/components/landing/AppDelMese';
 
 export default async function HomePage() {
   const apps = await getPublicApps();
+  const featuredApp = apps.find((a) => a.id === 'trading') ?? null;
 
   return (
     <main>
       {/* 1. Hero split */}
       <LandingHero />
 
-      {/* 2. Social proof strip */}
+      {/* 1.5. Social proof metrics */}
+      <SocialProofBar />
+
+      {/* 2. Secondary trust strip */}
       <div
         style={{
-          background: '#ffffff',
-          borderTop: '1px solid rgba(0,0,0,0.06)',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
-          padding: '20px 24px',
+          background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f7 100%)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '28px 24px',
         }}
       >
         <div
@@ -64,7 +70,10 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* 3. Bento grid app (sostituisce lo scroll infinito) */}
+      {/* 2.5. App del Mese — featured spotlight */}
+      {featuredApp && <AppDelMese app={featuredApp} />}
+
+      {/* 3. Bento grid app */}
       <LandingAppGrid apps={apps} />
 
       {/* 4. Sezione "Per chi è BCS AI" */}
@@ -131,10 +140,13 @@ export default async function HomePage() {
               <div
                 key={item.title}
                 style={{
-                  background: '#fafafa',
+                  background: 'rgba(255,255,255,0.8)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
                   borderRadius: 20,
                   padding: '28px 24px',
-                  border: '1px solid rgba(0,0,0,0.06)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
                 }}
               >
                 <div style={{ fontSize: 32, marginBottom: 16 }}>{item.icon}</div>
@@ -189,13 +201,27 @@ export default async function HomePage() {
         `}</style>
       </section>
 
+      {/* 4.5. FAQ Section */}
+      <FaqSection />
+
       {/* 5. Dark CTA strip finale */}
       <section
         style={{
           background: '#0f172a',
           padding: '72px 24px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
+        {/* Glow viola */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(55,19,236,0.15) 0%, transparent 60%)',
+            pointerEvents: 'none',
+          }}
+        />
         <div
           style={{
             maxWidth: 640,

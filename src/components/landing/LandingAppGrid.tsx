@@ -47,8 +47,19 @@ export default function LandingAppGrid({ apps }: LandingAppGridProps) {
       style={{
         padding: '80px 24px',
         background: '#f5f5f7',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Radial gradient per profondita */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(55,19,236,0.03) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }}
+      />
       <div style={{ maxWidth: 1140, margin: '0 auto' }}>
         {/* Intestazione sezione */}
         <motion.div
@@ -282,53 +293,24 @@ export default function LandingAppGrid({ apps }: LandingAppGridProps) {
           })}
         </motion.div>
 
-        {/* Coming Soon — collassati in basso */}
+        {/* Coming Soon — temporaneamente nascosti per la campagna di lancio */}
+        {/*
         {comingSoonApps.length > 0 && (
           <div style={{ marginTop: 32 }}>
-            <p
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#9ca3af',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}
-            >
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
               Prossimamente
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {comingSoonApps.map((app) => (
-                <div
-                  key={app.id}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 14px',
-                    borderRadius: 100,
-                    background: '#ffffff',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#9ca3af',
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: '#d1d5db',
-                      display: 'inline-block',
-                    }}
-                  />
+                <div key={app.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 100, background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', fontSize: 13, fontWeight: 600, color: '#9ca3af' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#d1d5db', display: 'inline-block' }} />
                   {app.name}
                 </div>
               ))}
             </div>
           </div>
         )}
+        */}
       </div>
 
       {/* Responsive */}
