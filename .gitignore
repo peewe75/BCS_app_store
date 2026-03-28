@@ -27,3 +27,17 @@ out
 *.sw?
 
 .vercel
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
+# Local output / working files
+output/
+CODEX_*.md
+
+# Temporary Office lock files
+~$*
