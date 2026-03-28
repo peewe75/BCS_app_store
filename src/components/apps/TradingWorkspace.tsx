@@ -1,23 +1,23 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import { getAllowedYears } from '@/src/apps/trading/plans'
 import { UploadClient } from '@/src/components/apps/trading/UploadClient'
 import { ReportsTable } from '@/src/components/apps/trading/ReportsTable'
 import { TaxFormClient } from '@/src/components/apps/trading/TaxFormClient'
+import { useAdminStatus } from '@/src/hooks/useAdminStatus'
 import type { Plan } from '@/src/apps/trading/types'
 
 type Tab = 'upload' | 'reports' | 'tax-form'
 
 export default function TradingWorkspace() {
   const { userId } = useAuth()
-  const { user } = useUser()
+  const { isAdmin } = useAdminStatus()
   const [activeTab, setActiveTab] = useState<Tab>('upload')
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | undefined>(undefined)
 
-  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin'
   // For admin, default to 'pro' plan. For regular users, we'll use 'base' as default
   // (the actual plan enforcement happens server-side in the API routes)
   const plan: Plan = isAdmin ? 'pro' : 'base'

@@ -1,36 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { hasClerkServerConfig, hasSupabaseAdminConfig } from '@/src/lib/env';
-
-async function verifyAdmin() {
-  try {
-    if (!hasClerkServerConfig() || !hasSupabaseAdminConfig()) {
-      return { error: 'Configurazione server mancante.', status: 503 };
-    }
-    const { userId } = await auth();
-    const user = await currentUser();
-    const role = user?.publicMetadata?.role as string | undefined;
-    if (!userId || role !== 'admin') {
-      return { error: 'Accesso admin richiesto.', status: 403 };
-    }
-    const supabase = createSupabaseAdminClient();
-    if (!supabase) {
-      return { error: 'Supabase admin non disponibile.', status: 503 };
-    }
-    return { supabase };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Errore inatteso nella verifica admin.';
-    return { error: message, status: 500 };
-  }
-}
+import { verifyAdminAccess } from '@/src/lib/auth/admin-server';
 
 // PUT /api/admin/apps/[id] — update app
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const check = await verifyAdmin();
+  const check = await verifyAdminAccess();
   if ('error' in check) {
     return NextResponse.json({ error: check.error }, { status: check.status });
   }
@@ -64,7 +40,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const check = await verifyAdmin();
+  const check = await verifyAdminAccess();
   if ('error' in check) {
     return NextResponse.json({ error: check.error }, { status: check.status });
   }

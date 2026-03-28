@@ -15,13 +15,6 @@ type ReportStatusResponse = {
   tax_due: number | null
 }
 
-function parseYearFromCell(value: string) {
-  const match = value.trim().match(/^(\d{4})\.\d{2}\.\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?$/)
-  if (!match) return null
-  const year = Number(match[1])
-  return Number.isFinite(year) ? year : null
-}
-
 function normalizeCellText(value: string) {
   return value.replace(/\s+/g, ' ').trim().replaceAll('\t', ' ')
 }
@@ -52,44 +45,6 @@ function normalizeBrokerReport(source: string) {
   return `ATF_TSV_V1\n${normalizedRows}`
 }
 
-function extractReportYears(source: string) {
-  const parser = new DOMParser()
-  const document = parser.parseFromString(source, 'text/html')
-  const rows = Array.from(document.querySelectorAll('tr')).map(row => {
-    const cells: string[] = []
-    Array.from(row.querySelectorAll('th, td')).forEach(cell => {
-      const colspan = Number(cell.getAttribute('colspan') ?? '1')
-      const text = normalizeCellText(cell.textContent ?? '')
-      const safeColspan = Number.isFinite(colspan) && colspan > 0 ? colspan : 1
-      cells.push(text)
-      for (let index = 1; index < safeColspan; index += 1) {
-        cells.push('')
-      }
-    })
-    return cells
-  })
-
-  const headerIndex = rows.findIndex(
-    row => row.some(cell => cell.includes('Ticket')) && row.some(cell => cell.includes('Profit'))
-  )
-
-  if (headerIndex === -1) return []
-
-  return Array.from(
-    new Set(
-      rows
-        .slice(headerIndex + 1)
-        .flatMap(row => {
-          const rowType = (row[2] ?? '').trim().toLowerCase()
-          if (rowType === 'buy' || rowType === 'sell') return [parseYearFromCell(row[8] ?? '')]
-          if (rowType === 'balance') return [parseYearFromCell(row[1] ?? '')]
-          return []
-        })
-        .filter((year): year is number => year !== null)
-    )
-  ).sort((left, right) => right - left)
-}
-
 async function readJsonResponse<T>(response: Response): Promise<T & { error?: string }> {
   const text = await response.text()
   if (!text) return {} as T & { error?: string }
@@ -114,8 +69,6 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [year, setYear] = useState(allowedYears[0] ?? new Date().getFullYear())
-  const [detectedYears, setDetectedYears] = useState<number[]>([])
-  const [yearMessage, setYearMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [reportId, setReportId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
@@ -174,37 +127,6 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
     const nextFile = event.target.files?.[0] ?? null
     setFile(nextFile)
     setError(null)
-
-    if (!nextFile) {
-      setDetectedYears([])
-      setYearMessage(null)
-      return
-    }
-
-    const sourceHtml = await nextFile.text()
-    const years = extractReportYears(sourceHtml)
-    setDetectedYears(years)
-
-    if (!years.length) {
-      setYearMessage('Non sono riuscito a rilevare automaticamente l anno fiscale dal file selezionato.')
-      return
-    }
-
-    const allowedDetectedYears = years.filter(candidate => allowedYears.includes(candidate))
-
-    if (!allowedDetectedYears.length) {
-      setYearMessage(`Il file contiene movimenti per ${years.join(', ')}, ma il piano attivo non consente questi anni.`)
-      return
-    }
-
-    if (!allowedDetectedYears.includes(year)) {
-      const suggestedYear = allowedDetectedYears[0]
-      setYear(suggestedYear)
-      setYearMessage(`Anni rilevati nel file: ${years.join(', ')}. Ho selezionato automaticamente il ${suggestedYear}.`)
-      return
-    }
-
-    setYearMessage(`Anni rilevati nel file: ${years.join(', ')}.`)
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -219,12 +141,6 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
 
     try {
       const sourceHtml = await file.text()
-      const availableYears = extractReportYears(sourceHtml)
-
-      if (availableYears.length > 0 && !availableYears.includes(year)) {
-        throw new Error(`Il file caricato non contiene movimenti per il ${year}. Anni rilevati nel report: ${availableYears.join(', ')}.`)
-      }
-
       const normalizedReport = normalizeBrokerReport(sourceHtml)
       const uploadFile = new File([normalizedReport], file.name, { type: 'text/plain' })
       const formData = new FormData()
@@ -283,7 +199,6 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
               ))}
             </select>
             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#999' }}>Base e Standard consentono solo anno corrente e precedente.</p>
-            {yearMessage && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#334155' }}>{yearMessage}</p>}
           </div>
 
           <div>
@@ -308,9 +223,6 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
               <span style={{ fontSize: 13, color: '#64748b' }}>{file ? file.name : 'Nessun file selezionato'}</span>
             </div>
             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#999' }}>Formati ammessi: .htm e .html esportati dal broker.</p>
-            {detectedYears.length > 0 && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#999' }}>Anni rilevati: {detectedYears.join(', ')}.</p>
-            )}
           </div>
 
           {error && (

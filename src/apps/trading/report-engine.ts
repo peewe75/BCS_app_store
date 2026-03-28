@@ -1,5 +1,6 @@
 import { load } from 'cheerio'
 import PDFDocument from 'pdfkit'
+import { extractYearsFromDates } from './shared-utils'
 
 export interface ParsedTrade {
   symbol: string
@@ -56,6 +57,11 @@ interface TableState {
   pageNumber: number
 }
 
+type ParsedReportRows = {
+  trades: ParsedTrade[]
+  balances: ParsedBalance[]
+}
+
 const PAGE_MARGIN = 46
 const HEADER_TOP = 26
 const CONTENT_TOP = 110
@@ -99,68 +105,69 @@ export function parseHtmlReport(htmlContent: string) {
     }
   })
 
-  const headerIndex = rows.findIndex(
-    (row) => row.some((cell) => cell.includes('Ticket')) && row.some((cell) => cell.includes('Profit'))
-  )
-
-  if (headerIndex === -1) {
-    return { trades: [] as ParsedTrade[], balances: [] as ParsedBalance[] }
-  }
-
-  const trades: ParsedTrade[] = []
-  const balances: ParsedBalance[] = []
-
-  for (const row of rows.slice(headerIndex + 1)) {
-    if (row.length < 4) continue
-
-    const rowType = (row[2] ?? '').trim().toLowerCase()
-
-    if (rowType === 'balance') {
-      const description = row
-        .slice(3, Math.min(13, row.length))
-        .map((cell) => cell.trim())
-        .filter(Boolean)
-        .join(' ')
-
-      balances.push({
-        description,
-        amount: parseNumber(row.at(-1) ?? ''),
-        date: parseDate(row[1] ?? ''),
-      })
-      continue
-    }
-
-    if (rowType !== 'buy' && rowType !== 'sell') continue
-
-    trades.push({
-      symbol: row[4] ?? '',
-      type: rowType,
-      size: parseNumber(row[3] ?? ''),
-      openPrice: parseNumber(row[5] ?? ''),
-      closePrice: parseNumber(row[9] ?? ''),
-      closeDate: parseDate(row[8] ?? ''),
-      commission: parseNumber(row[10] ?? ''),
-      swap: parseNumber(row[12] ?? ''),
-      profit: parseNumber(row[13] ?? ''),
-    })
-  }
-
-  return { trades, balances }
+  return parseTradeRows(rows)
 }
 
 function parseNormalizedReport(content: string) {
   const rows = content
     .slice(NORMALIZED_REPORT_PREFIX.length)
     .split('\n')
-    .map(line => line.split('\t').map(cell => cell.trim()))
-    .filter(row => row.some(cell => cell.length > 0))
+    .map((line) => line.split('\t').map((cell) => cell.trim()))
+    .filter((row) => row.some((cell) => cell.length > 0))
 
+  return parseTradeRows(rows)
+}
+
+function parseTradeRows(rows: string[][]): ParsedReportRows {
   const headerIndex = rows.findIndex(
     (row) => row.some((cell) => cell.includes('Ticket')) && row.some((cell) => cell.includes('Profit'))
   )
 
   if (headerIndex === -1) {
-    return { trades: [] as ParsedTrade[], balances: [] as ParsedBalance[] }
+    return { trades: [], balances: [] }
+  }
+
+  const headers = rows[headerIndex].map(normalizeHeaderCell)
+
+  const col = {
+    type: headers.findIndex((header) => header === 'type'),
+    symbol: Math.max(headers.findIndex((header) => header === 'symbol'), headers.findIndex((header) => header === 'item')),
+    size: headers.findIndex((header) => header === 'size' || header === 'volume'),
+    openPrice: headers.findIndex((header) => header === 'price' || header === 'open price'),
+    closePrice: -1,
+    closeTime: -1,
+    commission: headers.findIndex((header) => header === 'commission'),
+    swap: headers.findIndex((header) => header === 'swap' || header === 'taxes'),
+    profit: headers.findIndex((header) => header === 'profit'),
+  }
+
+  const priceIndices = headers
+    .map((header, index) => (header === 'price' ? index : -1))
+    .filter((index) => index >= 0)
+
+  if (priceIndices.length >= 2) {
+    col.openPrice = priceIndices[0]
+    col.closePrice = priceIndices[1]
+  } else {
+    if (col.openPrice === -1) {
+      col.openPrice = headers.findIndex((header) => header.includes('open') && header.includes('price'))
+    }
+    col.closePrice = headers.findIndex((header) => header.includes('close') && header.includes('price'))
+  }
+
+  const timeIndices = headers
+    .map((header, index) => (header === 'time' ? index : -1))
+    .filter((index) => index >= 0)
+
+  if (timeIndices.length >= 2) {
+    col.closeTime = timeIndices[1]
+  } else {
+    const closeTimeIndex = headers.findIndex((header) => header === 'close time')
+    col.closeTime = closeTimeIndex >= 0 ? closeTimeIndex : headers.lastIndexOf('time')
+  }
+
+  if (col.type === -1 || col.profit === -1) {
+    return { trades: [], balances: [] }
   }
 
   const trades: ParsedTrade[] = []
@@ -169,7 +176,7 @@ function parseNormalizedReport(content: string) {
   for (const row of rows.slice(headerIndex + 1)) {
     if (row.length < 4) continue
 
-    const rowType = (row[2] ?? '').trim().toLowerCase()
+    const rowType = (row[col.type] ?? '').trim().toLowerCase()
 
     if (rowType === 'balance') {
       const description = row
@@ -189,28 +196,51 @@ function parseNormalizedReport(content: string) {
     if (rowType !== 'buy' && rowType !== 'sell') continue
 
     trades.push({
-      symbol: row[4] ?? '',
+      symbol: col.symbol >= 0 ? row[col.symbol] ?? '' : '',
       type: rowType,
-      size: parseNumber(row[3] ?? ''),
-      openPrice: parseNumber(row[5] ?? ''),
-      closePrice: parseNumber(row[9] ?? ''),
-      closeDate: parseDate(row[8] ?? ''),
-      commission: parseNumber(row[10] ?? ''),
-      swap: parseNumber(row[12] ?? ''),
-      profit: parseNumber(row[13] ?? ''),
+      size: parseNumber(col.size >= 0 ? row[col.size] ?? '' : '0'),
+      openPrice: parseNumber(col.openPrice >= 0 ? row[col.openPrice] ?? '' : '0'),
+      closePrice: parseNumber(col.closePrice >= 0 ? row[col.closePrice] ?? '' : '0'),
+      closeDate: parseDate(col.closeTime >= 0 ? row[col.closeTime] ?? '' : ''),
+      commission: parseNumber(col.commission >= 0 ? row[col.commission] ?? '' : '0'),
+      swap: parseNumber(col.swap >= 0 ? row[col.swap] ?? '' : '0'),
+      profit: parseNumber(col.profit >= 0 ? row[col.profit] ?? '' : '0'),
     })
   }
 
   return { trades, balances }
 }
 
-export function calculateTax(trades: ParsedTrade[], balances: ParsedBalance[], year: number): TaxResults {
+export function detectScaleFactorFromTrades(trades: ParsedTrade[], balances: ParsedBalance[]): number {
+  const allProfits = trades
+    .map((trade) => Math.abs(trade.profit))
+    .filter((value) => value > 0)
+    .sort((left, right) => left - right)
+
+  const allBalances = balances
+    .map((balance) => Math.abs(balance.amount))
+    .filter((value) => value > 0)
+    .sort((left, right) => left - right)
+
+  const medianProfit = allProfits.length ? allProfits[Math.floor(allProfits.length / 2)] : 0
+  const medianBalance = allBalances.length ? allBalances[Math.floor(allBalances.length / 2)] : 0
+
+  return medianBalance >= 20000 || medianProfit >= 250 ? 100 : 1
+}
+
+export function calculateTax(
+  trades: ParsedTrade[],
+  balances: ParsedBalance[],
+  year: number,
+  scaleFactor?: number
+): TaxResults {
+  const scale = scaleFactor ?? detectScaleFactorFromTrades(trades, balances)
   const yearTrades = trades.filter((trade) => trade.closeDate?.getFullYear() === year)
   let corrispettivo = 0
   let costo = 0
 
   for (const trade of yearTrades) {
-    const fiscalNet = roundCurrency((trade.profit + trade.commission) / 100)
+    const fiscalNet = roundCurrency((trade.profit + trade.commission) / scale)
 
     if (fiscalNet > 0) {
       corrispettivo += fiscalNet
@@ -228,7 +258,7 @@ export function calculateTax(trades: ParsedTrade[], balances: ParsedBalance[], y
 
   const netProfit = roundCurrency(corrispettivo - costo)
   const totalInterest = roundCurrency(
-    yearBalances.reduce((sum, balance) => sum + balance.amount, 0) / 100
+    yearBalances.reduce((sum, balance) => sum + balance.amount, 0) / scale
   )
 
   return {
@@ -240,19 +270,15 @@ export function calculateTax(trades: ParsedTrade[], balances: ParsedBalance[], y
     taxDue: roundCurrency(Math.max(0, netProfit) * 0.26),
     totalInterest,
     interestTax: roundCurrency(Math.max(0, totalInterest) * 0.26),
-    totalSwap: roundCurrency(yearTrades.reduce((sum, trade) => sum + trade.swap, 0) / 100),
+    totalSwap: roundCurrency(yearTrades.reduce((sum, trade) => sum + trade.swap, 0) / scale),
   }
 }
 
 export function getReportYears(trades: ParsedTrade[], balances: ParsedBalance[]) {
-  return Array.from(
-    new Set(
-      [
-        ...trades.map(trade => trade.closeDate?.getFullYear()).filter((year): year is number => Number.isFinite(year)),
-        ...balances.map(balance => balance.date?.getFullYear()).filter((year): year is number => Number.isFinite(year)),
-      ]
-    )
-  ).sort((left, right) => right - left)
+  return extractYearsFromDates([
+    ...trades.map((trade) => trade.closeDate),
+    ...balances.map((balance) => balance.date),
+  ])
 }
 
 export async function generateReportPdf({
@@ -261,12 +287,14 @@ export async function generateReportPdf({
   balances,
   userName,
   taxCode,
+  scaleFactor = 1,
 }: {
   results: TaxResults
   trades: ParsedTrade[]
   balances: ParsedBalance[]
   userName?: string | null
   taxCode?: string | null
+  scaleFactor?: number
 }): Promise<Buffer> {
   const document = new PDFDocument({
     size: 'A4',
@@ -311,7 +339,7 @@ export async function generateReportPdf({
     emphasizedRowIndexes: [3],
   })
 
-  const interestRows = buildInterestRows(balances, results.year)
+  const interestRows = buildInterestRows(balances, results.year, scaleFactor)
   const activeInterest = roundCurrency(
     interestRows.filter((row) => row.amountEur >= 0).reduce((sum, row) => sum + row.amountEur, 0)
   )
@@ -333,6 +361,20 @@ export async function generateReportPdf({
     ],
     emphasizedRowIndexes: [3],
   })
+
+  if (results.totalSwap !== 0) {
+    ensurePage(document, state, meta, 30)
+    document
+      .font('Helvetica-Oblique')
+      .fontSize(7)
+      .fillColor(TEXT_MUTED)
+      .text(
+        `Nota: Swap complessivi pari a ${formatCurrency(results.totalSwap)}. Il trattamento fiscale degli swap va valutato col commercialista.`,
+        PAGE_MARGIN,
+        state.y
+      )
+    state.y += 16
+  }
 
   drawTable(document, state, meta, {
     title: 'Dettaglio movimenti interessi',
@@ -377,9 +419,9 @@ export async function generateReportPdf({
       size: trade.size.toFixed(2),
       open: trade.openPrice.toFixed(5),
       close: trade.closePrice.toFixed(5),
-      profit: formatCurrency(roundCurrency(trade.profit / 100)),
-      commission: formatCurrency(roundCurrency(trade.commission / 100)),
-      net: formatCurrency(roundCurrency((trade.profit + trade.commission) / 100)),
+      profit: formatCurrency(roundCurrency(trade.profit / scaleFactor)),
+      commission: formatCurrency(roundCurrency(trade.commission / scaleFactor)),
+      net: formatCurrency(roundCurrency((trade.profit + trade.commission) / scaleFactor)),
     })),
     fontSize: 7,
   })
@@ -582,7 +624,7 @@ function buildHeaderRow(columns: TableColumn[]) {
   }, {})
 }
 
-function buildInterestRows(balances: ParsedBalance[], year: number): InterestRow[] {
+function buildInterestRows(balances: ParsedBalance[], year: number, scaleFactor: number = 1): InterestRow[] {
   const interestKeywords = ['interest', 'cashback', 'ir']
 
   return balances
@@ -592,7 +634,7 @@ function buildInterestRows(balances: ParsedBalance[], year: number): InterestRow
         interestKeywords.some((keyword) => balance.description.toLowerCase().includes(keyword))
     )
     .map((balance) => {
-      const amountEur = roundCurrency(balance.amount / 100)
+      const amountEur = roundCurrency(balance.amount / scaleFactor)
 
       return {
         date: balance.date as Date,
@@ -615,7 +657,7 @@ function parseDate(value: string) {
   if (!match) return null
 
   const [, year, month, day, hours, minutes, seconds = '00'] = match
-  const date = new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`)
+  const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), Number(seconds))
 
   return Number.isNaN(date.getTime()) ? null : date
 }
@@ -634,10 +676,16 @@ function formatShortDate(value: Date | null | undefined) {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-    timeZone: 'UTC',
   }).format(value)
 }
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100
+}
+
+function normalizeHeaderCell(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
 }

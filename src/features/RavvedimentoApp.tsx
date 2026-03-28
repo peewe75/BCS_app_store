@@ -4,13 +4,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCalculatorStore, TRIBUTI } from '../apps/ravvedimento/store';
 import { calcolaRavvedimento } from '../apps/ravvedimento/calcolo';
+import type { CategoriaTributo, Tributo } from '../apps/ravvedimento/types';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import DocumentoPDF from '../apps/ravvedimento/DocumentoPDF';
 import { format } from 'date-fns';
 import { useAuth } from '@clerk/nextjs';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 
-/* ─── Styles ──────────────────────────────────────────────────── */
+/* Styles */
 const accent = '#3713ec';
 
 const card: React.CSSProperties = {
@@ -77,7 +78,54 @@ const btnOutline: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-/* ─── Step Indicator ──────────────────────────────────────────── */
+const CATEGORIE_LABELS: Record<CategoriaTributo, string> = {
+  IRPEF: 'IRPEF',
+  IRES: 'IRES',
+  IVA: 'IVA',
+  IRAP: 'IRAP',
+  IMU: 'IMU',
+  CEDOLARE_SECCA: 'Cedolare Secca',
+  ADD_REGIONALE: 'Add. Regionale IRPEF',
+  ADD_COMUNALE: 'Add. Comunale IRPEF',
+  SOSTITUTIVA: 'Imposta Sostitutiva / Forfettario',
+  RITENUTE: "Ritenute d'Acconto",
+  BOLLO: 'Imposta di Bollo',
+  REGISTRO: 'Imposta di Registro',
+  CAMERALE: 'Diritto Camerale',
+  TOBIN: 'Tobin Tax',
+  IVAFE_IVIE: 'IVAFE / IVIE (Quadro RW)',
+  PLUSVALENZE: 'Plusvalenze Finanziarie (Quadro RT)',
+  INPS: 'INPS',
+  ALTRO: 'Altro',
+};
+
+const CATEGORIE_ORDINE: CategoriaTributo[] = [
+  'IRPEF',
+  'IRES',
+  'IVA',
+  'IRAP',
+  'SOSTITUTIVA',
+  'CEDOLARE_SECCA',
+  'ADD_REGIONALE',
+  'ADD_COMUNALE',
+  'RITENUTE',
+  'IMU',
+  'BOLLO',
+  'REGISTRO',
+  'IVAFE_IVIE',
+  'PLUSVALENZE',
+  'TOBIN',
+  'CAMERALE',
+  'INPS',
+  'ALTRO',
+];
+
+const getTributoKey = (tributo: Pick<Tributo, 'codiceTributo' | 'sezioneF24'>) =>
+  `${tributo.codiceTributo}::${tributo.sezioneF24}`;
+
+const findTributoByKey = (key: string) => TRIBUTI.find((tributo) => getTributoKey(tributo) === key);
+
+/* Step Indicator */
 const StepIndicator: React.FC<{ current: number }> = ({ current }) => (
   <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
     {[1, 2, 3].map((s) => (
@@ -98,7 +146,7 @@ const StepIndicator: React.FC<{ current: number }> = ({ current }) => (
   </div>
 );
 
-/* ─── Stat Card ───────────────────────────────────────────────── */
+/* Stat Card */
 const StatCard: React.FC<{ label: string; value: string; dark?: boolean }> = ({ label, value, dark }) => (
   <div style={{
     padding: '20px', borderRadius: '20px',
@@ -108,7 +156,7 @@ const StatCard: React.FC<{ label: string; value: string; dark?: boolean }> = ({ 
     <p style={{
       fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em',
       textTransform: 'uppercase', margin: '0 0 6px',
-      color: dark ? `${accent}` : '#6E6E73',
+      color: dark ? accent : '#6E6E73',
     }}>
       {label}
     </p>
@@ -122,7 +170,6 @@ const StatCard: React.FC<{ label: string; value: string; dark?: boolean }> = ({ 
   </div>
 );
 
-/* ─── Main Component ──────────────────────────────────────────── */
 const RavvedimentoApp: React.FC = () => {
   const { step, input, risultato, error, setStep, setInput, calculate, reset } = useCalculatorStore();
   const { userId, getToken } = useAuth();
@@ -132,16 +179,49 @@ const RavvedimentoApp: React.FC = () => {
     dataScadenza: '',
     dataVersamento: '',
   });
+  const [searchQuery, setSearchQuery] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  const tributoSelezionato = findTributoByKey(formData.codiceTributo);
+  const tributiFiltrati = TRIBUTI.filter((tributo) => {
+    if (!tributo.attivo) {
+      return false;
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    return (
+      tributo.codiceTributo.toLowerCase().includes(query)
+      || tributo.nome.toLowerCase().includes(query)
+    );
+  });
+
+  const tributiRaggruppati = CATEGORIE_ORDINE.reduce<Record<CategoriaTributo, Tributo[]>>((acc, categoria) => {
+    acc[categoria] = tributiFiltrati.filter((tributo) => tributo.categoria === categoria);
+    return acc;
+  }, {} as Record<CategoriaTributo, Tributo[]>);
 
   const handleStep1 = () => {
     const importo = parseFloat(formData.importo.replace(',', '.'));
-    if (!formData.codiceTributo) { setFormError('Seleziona un tributo'); return; }
-    if (isNaN(importo) || importo <= 0) { setFormError('Inserisci un importo valido'); return; }
+
+    if (!tributoSelezionato) {
+      setFormError('Seleziona un tributo');
+      return;
+    }
+
+    if (isNaN(importo) || importo <= 0) {
+      setFormError('Inserisci un importo valido');
+      return;
+    }
+
     setFormError(null);
     setInput({
-      codiceTributo: formData.codiceTributo,
-      nomeTributo: TRIBUTI.find(t => t.codiceTributo === formData.codiceTributo)?.nome || '',
+      codiceTributo: tributoSelezionato.codiceTributo,
+      nomeTributo: tributoSelezionato.nome,
+      sezioneF24: tributoSelezionato.sezioneF24,
       importoOriginale: importo,
     });
     setStep(2);
@@ -152,17 +232,30 @@ const RavvedimentoApp: React.FC = () => {
       setFormError('Compila entrambe le date');
       return;
     }
+
+    if (!tributoSelezionato) {
+      setFormError('Seleziona un tributo valido');
+      return;
+    }
+
     const scadenza = new Date(formData.dataScadenza);
     const versamento = new Date(formData.dataVersamento);
+
     if (versamento <= scadenza) {
       setFormError('La data di versamento deve essere successiva alla scadenza');
       return;
     }
+
     setFormError(null);
-    setInput({ dataScadenza: scadenza, dataVersamento: versamento });
+    setInput({
+      dataScadenza: scadenza,
+      dataVersamento: versamento,
+      codiceTributo: tributoSelezionato.codiceTributo,
+      nomeTributo: tributoSelezionato.nome,
+      sezioneF24: tributoSelezionato.sezioneF24,
+    });
     calculate();
 
-    // Salva su Supabase se l'utente e loggato
     if (userId) {
       try {
         const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase;
@@ -171,14 +264,16 @@ const RavvedimentoApp: React.FC = () => {
           importoOriginale: importo,
           dataScadenza: scadenza,
           dataVersamento: versamento,
-          codiceTributo: formData.codiceTributo,
-          nomeTributo: TRIBUTI.find(t => t.codiceTributo === formData.codiceTributo)?.nome || '',
+          codiceTributo: tributoSelezionato.codiceTributo,
+          nomeTributo: tributoSelezionato.nome,
+          sezioneF24: tributoSelezionato.sezioneF24,
         });
+
         if (client) {
           await client.from('ravvedimento_calc').insert({
             user_id: userId,
-            tributo: formData.codiceTributo,
-            importo: importo,
+            tributo: tributoSelezionato.codiceTributo,
+            importo,
             data_scadenza: formData.dataScadenza,
             data_pagamento: formData.dataVersamento,
             sanzione: ris.sanzioneRidotta,
@@ -195,6 +290,7 @@ const RavvedimentoApp: React.FC = () => {
   const handleReset = () => {
     reset();
     setFormData({ codiceTributo: '', importo: '', dataScadenza: '', dataVersamento: '' });
+    setSearchQuery('');
     setFormError(null);
   };
 
@@ -220,7 +316,7 @@ const RavvedimentoApp: React.FC = () => {
           fontSize: '12px', fontWeight: 700, marginBottom: '12px',
           fontFamily: 'var(--font-body)',
         }}>
-          <span>🏛️</span> Fiscale
+          <span>Fiscale</span>
         </div>
         <h1 style={{
           fontSize: '28px', fontWeight: 800, color: '#1D1D1F',
@@ -287,23 +383,46 @@ const RavvedimentoApp: React.FC = () => {
         {/* Card Body */}
         <div style={{ padding: '28px' }}>
           <AnimatePresence mode="wait">
-            {/* Step 1: Tributo + Importo */}
             {step === 1 && (
               <motion.div key="step1" {...fadeIn}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div>
                     <label style={labelStyle}>Tipo di Tributo</label>
+                    <input
+                      type="text"
+                      placeholder="Cerca per codice o nome tributo..."
+                      style={{ ...inputStyle, marginBottom: '12px' }}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                     <select
                       style={inputStyle}
                       value={formData.codiceTributo}
-                      onChange={(e) => setFormData(f => ({ ...f, codiceTributo: e.target.value }))}
+                      onChange={(e) => setFormData((current) => ({ ...current, codiceTributo: e.target.value }))}
                     >
                       <option value="">Seleziona un tributo...</option>
-                      {TRIBUTI.map((t) => (
-                        <option key={t.codiceTributo} value={t.codiceTributo}>
-                          {t.codiceTributo} - {t.nome}
+                      {CATEGORIE_ORDINE.map((categoria) => {
+                        const tributiCategoria = tributiRaggruppati[categoria];
+
+                        if (tributiCategoria.length === 0) {
+                          return null;
+                        }
+
+                        return (
+                          <optgroup key={categoria} label={CATEGORIE_LABELS[categoria]}>
+                            {tributiCategoria.map((tributo) => (
+                              <option key={getTributoKey(tributo)} value={getTributoKey(tributo)}>
+                                {tributo.codiceTributo} - {tributo.nome}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
+                      {tributiFiltrati.length === 0 && (
+                        <option value="" disabled>
+                          Nessun tributo trovato
                         </option>
-                      ))}
+                      )}
                     </select>
                   </div>
 
@@ -321,7 +440,7 @@ const RavvedimentoApp: React.FC = () => {
                         placeholder="0,00"
                         style={{ ...inputStyle, paddingLeft: '36px' }}
                         value={formData.importo}
-                        onChange={(e) => setFormData(f => ({ ...f, importo: e.target.value }))}
+                        onChange={(e) => setFormData((current) => ({ ...current, importo: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -346,11 +465,9 @@ const RavvedimentoApp: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Step 2: Date */}
             {step === 2 && (
               <motion.div key="step2" {...fadeIn}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Summary chip */}
                   <div style={{
                     padding: '16px 20px', borderRadius: '16px',
                     background: `${accent}08`, border: `1px solid ${accent}15`,
@@ -361,6 +478,11 @@ const RavvedimentoApp: React.FC = () => {
                     <p style={{ fontSize: '14px', fontWeight: 700, color: '#1D1D1F', margin: '0 0 2px' }}>
                       {input.codiceTributo} - {input.nomeTributo}
                     </p>
+                    {input.sezioneF24 && (
+                      <p style={{ fontSize: '12px', color: '#6E6E73', margin: '0 0 6px' }}>
+                        Sezione F24: {input.sezioneF24}
+                      </p>
+                    )}
                     <p style={{ fontSize: '16px', fontWeight: 800, color: accent, margin: 0 }}>
                       &euro; {input.importoOriginale?.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                     </p>
@@ -373,7 +495,7 @@ const RavvedimentoApp: React.FC = () => {
                         type="date"
                         style={inputStyle}
                         value={formData.dataScadenza}
-                        onChange={(e) => setFormData(f => ({ ...f, dataScadenza: e.target.value }))}
+                        onChange={(e) => setFormData((current) => ({ ...current, dataScadenza: e.target.value }))}
                       />
                     </div>
                     <div>
@@ -382,7 +504,7 @@ const RavvedimentoApp: React.FC = () => {
                         type="date"
                         style={inputStyle}
                         value={formData.dataVersamento}
-                        onChange={(e) => setFormData(f => ({ ...f, dataVersamento: e.target.value }))}
+                        onChange={(e) => setFormData((current) => ({ ...current, dataVersamento: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -410,11 +532,9 @@ const RavvedimentoApp: React.FC = () => {
               </motion.div>
             )}
 
-            {/* Step 3: Risultati */}
             {step === 3 && risultato && (
               <motion.div key="step3" {...fadeIn}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Main stat cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <StatCard label="Totale da versare" value={`\u20AC ${risultato.totaleDaVersare.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`} dark />
@@ -423,7 +543,6 @@ const RavvedimentoApp: React.FC = () => {
                     <StatCard label="Interessi legali" value={`\u20AC ${risultato.totaleInteressi.toFixed(2)}`} />
                   </div>
 
-                  {/* Tipo ravvedimento badge */}
                   <div style={{
                     padding: '14px 20px', borderRadius: '14px',
                     background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)',
@@ -439,7 +558,24 @@ const RavvedimentoApp: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Interest detail table */}
+                  <div style={{
+                    padding: '14px 20px', borderRadius: '14px',
+                    background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#6E6E73' }}>Regime</span>
+                    <span style={{
+                      padding: '4px 14px',
+                      borderRadius: '100px',
+                      background: risultato.regime === 'POST_2024' ? '#D1FAE5' : '#E5E7EB',
+                      color: risultato.regime === 'POST_2024' ? '#065F46' : '#4B5563',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}>
+                      {risultato.regime === 'POST_2024' ? 'Regime post D.Lgs. 87/2024' : 'Regime ante riforma'}
+                    </span>
+                  </div>
+
                   {risultato.dettaglioInteressi.length > 0 && (
                     <div style={{
                       borderRadius: '16px', border: '1px solid rgba(0,0,0,0.06)',
@@ -457,16 +593,16 @@ const RavvedimentoApp: React.FC = () => {
                         </p>
                       </div>
                       <div style={{ padding: '4px 0' }}>
-                        {risultato.dettaglioInteressi.map((d) => (
-                          <div key={d.anno} style={{
+                        {risultato.dettaglioInteressi.map((dettaglio) => (
+                          <div key={dettaglio.anno} style={{
                             display: 'flex', justifyContent: 'space-between',
                             padding: '10px 20px', fontSize: '13px',
                           }}>
                             <span style={{ color: '#6E6E73' }}>
-                              Anno {d.anno} ({d.giorniInAnno} gg, {d.tassoPercentuale}%)
+                              Anno {dettaglio.anno} ({dettaglio.giorniInAnno} gg, {dettaglio.tassoPercentuale}%)
                             </span>
                             <span style={{ fontWeight: 700, color: '#1D1D1F' }}>
-                              &euro; {d.interessiAnno.toFixed(4)}
+                              &euro; {dettaglio.interessiAnno.toFixed(4)}
                             </span>
                           </div>
                         ))}
@@ -474,7 +610,6 @@ const RavvedimentoApp: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
                     <button style={btnOutline} onClick={handleReset}>
                       Nuovo calcolo
@@ -495,8 +630,13 @@ const RavvedimentoApp: React.FC = () => {
                         >
                           {loading ? 'Generazione...' : 'Scarica PDF'}
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
-                              stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path
+                              d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         </button>
                       )}
@@ -507,7 +647,6 @@ const RavvedimentoApp: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {/* Global error */}
           {error && step !== 3 && (
             <div style={{
               padding: '12px 16px', borderRadius: '12px',
@@ -521,7 +660,6 @@ const RavvedimentoApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Info footer */}
       <div style={{
         marginTop: '24px', padding: '20px',
         borderRadius: '16px', background: '#F5F5F7',
@@ -531,10 +669,11 @@ const RavvedimentoApp: React.FC = () => {
           fontSize: '12px', color: '#6E6E73', margin: 0,
           lineHeight: 1.6, fontFamily: 'var(--font-body)',
         }}>
-          <strong>Riferimento normativo:</strong> Art. 13 D.Lgs. 472/1997 come modificato dal D.Lgs. 87/2024,
-          in vigore dal 1 settembre 2024. Tassi di interesse legale aggiornati al 2026
-          (D.M. MEF 10 dicembre 2025). Questo strumento ha finalita informativa: verificare
-          sempre con il proprio consulente fiscale.
+          <strong>Riferimento normativo:</strong> Art. 13 D.Lgs. 472/1997 come modificato dal D.Lgs. 87/2024.
+          Regime sanzionatorio determinato automaticamente dalla data di scadenza:
+          dal 01/09/2024 sanzione base 25%, prima del 01/09/2024 sanzione base 30%.
+          Tassi di interesse legali aggiornati al 2026 (D.M. MEF 10 dicembre 2025, 1,60%).
+          Questo strumento ha finalita informativa: verificare sempre con il proprio consulente fiscale.
         </p>
       </div>
     </div>

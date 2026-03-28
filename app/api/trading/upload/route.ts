@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { isYearAllowedForPlan, PLAN_DETAILS } from '@/src/apps/trading/plans'
 import { buildUploadBlobKey, buildBlobKey, saveTextBlob, saveBlob } from '@/src/apps/trading/storage'
-import { getReportYears, parseHtmlReport, calculateTax, generateReportPdf } from '@/src/apps/trading/report-engine'
+import {
+  getReportYears,
+  parseHtmlReport,
+  calculateTax,
+  generateReportPdf,
+  detectScaleFactorFromTrades,
+} from '@/src/apps/trading/report-engine'
+import { extractTaxProfileFromClerkUser } from '@/src/apps/trading/tax-form-profile'
+import { isServerUserAdmin } from '@/src/lib/auth/admin-server'
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin'
 import type { Plan } from '@/src/apps/trading/types'
 
@@ -23,9 +31,9 @@ export async function POST(req: NextRequest) {
     .eq('app_id', 'trading')
     .maybeSingle()
 
-  // Check if admin via Clerk publicMetadata (reliable, no Supabase dependency)
   const clerkUser = await currentUser()
-  const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin'
+  const taxProfile = extractTaxProfileFromClerkUser(clerkUser)
+  const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase)
   const plan = (grant?.plan as Plan) ?? (isAdmin ? 'pro' : null)
 
   if (!plan) {
@@ -40,6 +48,13 @@ export async function POST(req: NextRequest) {
   const year = Number(formData.get('year')) || new Date().getFullYear() - 1
 
   if (!file) return NextResponse.json({ error: 'File mancante.' }, { status: 400 })
+  const MAX_FILE_SIZE = 10 * 1024 * 1024
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      { error: `File troppo grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Massimo consentito: 10 MB.` },
+      { status: 400 }
+    )
+  }
   if (!file.name.match(/\.(htm|html)$/i)) {
     return NextResponse.json(
       { error: 'Formato non supportato. Carica un file .htm o .html.' },
@@ -73,6 +88,13 @@ export async function POST(req: NextRequest) {
       )
     }
   }
+
+  await supabase
+    .from('trading_reports')
+    .update({ status: 'error' })
+    .eq('user_id', userId)
+    .eq('status', 'processing')
+    .lt('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
 
   const htmlContent = await file.text()
   const parsedReport = parseHtmlReport(htmlContent)
@@ -111,13 +133,17 @@ export async function POST(req: NextRequest) {
     await saveTextBlob(htmlBlobKey, htmlContent, 'text/html; charset=utf-8')
 
     // Calculate tax synchronously (no background functions needed on Vercel)
-    const results = calculateTax(parsedReport.trades, parsedReport.balances, year)
+    const scaleFactor = detectScaleFactorFromTrades(parsedReport.trades, parsedReport.balances)
+    const results = calculateTax(parsedReport.trades, parsedReport.balances, year, scaleFactor)
 
     // Generate PDF
     const pdfBuffer = await generateReportPdf({
       results,
       trades: parsedReport.trades,
       balances: parsedReport.balances,
+      userName: taxProfile.displayName,
+      taxCode: taxProfile.taxCode,
+      scaleFactor,
     })
 
     // Save PDF to storage

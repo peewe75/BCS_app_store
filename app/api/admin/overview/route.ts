@@ -1,29 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { hasClerkServerConfig, hasSupabaseAdminConfig } from '@/src/lib/env';
+import { verifyAdminAccess } from '@/src/lib/auth/admin-server';
 
 export async function GET() {
   try {
-    if (!hasClerkServerConfig() || !hasSupabaseAdminConfig()) {
-      return NextResponse.json(
-        { error: 'Mancano CLERK_SECRET_KEY o SUPABASE_SERVICE_ROLE_KEY.' },
-        { status: 503 },
-      );
+    const check = await verifyAdminAccess();
+    if ('error' in check) {
+      return NextResponse.json({ error: check.error }, { status: check.status });
     }
-
-    const { userId } = await auth();
-    const user = await currentUser();
-    const role = user?.publicMetadata?.role as string | undefined;
-
-    if (!userId || role !== 'admin') {
-      return NextResponse.json({ error: 'Accesso admin richiesto.' }, { status: 403 });
-    }
-
-    const supabase = createSupabaseAdminClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Supabase admin non disponibile.' }, { status: 503 });
-    }
+    const { supabase } = check;
 
     const [usersResult, appsResult, grantsResult, tradingCount, ravvedimentoCount, ugcCount] =
       await Promise.all([

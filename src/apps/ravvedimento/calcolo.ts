@@ -1,5 +1,12 @@
 import { differenceInDays, isAfter, isBefore, startOfYear, endOfYear, getYear } from 'date-fns';
-import type { InputCalcolo, RisultatoCalcolo, TipoRavvedimento, DettaglioInteressi, TassoInteresse } from './types';
+import type {
+  InputCalcolo,
+  RisultatoCalcolo,
+  TipoRavvedimento,
+  DettaglioInteressi,
+  TassoInteresse,
+  RegimeSanzionatorio,
+} from './types';
 
 export const TASSI_INTERESSE_STORICI: TassoInteresse[] = [
   { anno: 2000, tassoPercentuale: 3.50, dataDecorrenza: '2000-01-01', dataFine: '2000-12-31', riferimentoNormativo: 'D.M. 11 dicembre 1999' },
@@ -31,26 +38,100 @@ export const TASSI_INTERESSE_STORICI: TassoInteresse[] = [
   { anno: 2026, tassoPercentuale: 1.60, dataDecorrenza: '2026-01-01', riferimentoNormativo: 'D.M. MEF 10 dicembre 2025 - G.U. 13/12/2025' },
 ];
 
-export function classificaRavvedimento(giorniRitardo: number): {
+const DATA_RIFORMA = new Date(2024, 8, 1);
+
+export function determinaRegime(dataScadenza: Date): RegimeSanzionatorio {
+  return dataScadenza >= DATA_RIFORMA ? 'POST_2024' : 'PRE_2024';
+}
+
+export function classificaRavvedimento(
+  giorniRitardo: number,
+  regime: RegimeSanzionatorio
+): {
   tipo: TipoRavvedimento;
   nome: string;
+  sanzioneBasePercentuale: number;
   riduzione: number;
-  percentualeSanzione: number;
+  percentualeSanzioneEffettiva: number;
   riferimento: string;
+  isGiornaliero: boolean;
 } {
-  if (giorniRitardo <= 15) {
-    return { tipo: 'sprint_15', nome: 'Ravvedimento Sprint (entro 15 giorni)', riduzione: 1/10, percentualeSanzione: 0.30 * (1/10) * 100, riferimento: 'Art. 13, c. 1, lett. a-bis) D.Lgs. 472/1997' };
+  const isPost = regime === 'POST_2024';
+  const baseCorta = isPost ? 12.5 : 15;
+  const baseLunga = isPost ? 25 : 30;
+
+  if (giorniRitardo <= 14) {
+    // Sprint: base ≤90gg (12,5% POST / 15% PRE), riduzione 1/10 (lett. a), ulteriore 1/15 per giorno (c.1-bis)
+    // = 0,0833%/giorno POST_2024 | 0,10%/giorno PRE_2024 — Agenzia Entrate e Art. 13 c.1-bis D.Lgs. 472/1997
+    const perGiorno = baseCorta / 10 / 15;
+    return {
+      tipo: 'sprint',
+      nome: `Ravvedimento Sprint (${giorniRitardo} giorni)`,
+      sanzioneBasePercentuale: baseCorta,
+      riduzione: 1 / 10,
+      percentualeSanzioneEffettiva: perGiorno * giorniRitardo,
+      riferimento: 'Art. 13, c.1, lett. a) D.Lgs. 472/1997',
+      isGiornaliero: true,
+    };
   }
+
+  if (giorniRitardo <= 30) {
+    return {
+      tipo: 'breve',
+      nome: 'Ravvedimento Breve (15-30 giorni)',
+      sanzioneBasePercentuale: baseCorta,
+      riduzione: 1 / 10,
+      percentualeSanzioneEffettiva: baseCorta / 10,
+      riferimento: 'Art. 13, c.1, lett. a) D.Lgs. 472/1997',
+      isGiornaliero: false,
+    };
+  }
+
   if (giorniRitardo <= 90) {
-    return { tipo: 'breve', nome: 'Ravvedimento Breve (16-90 giorni)', riduzione: 1/9, percentualeSanzione: 0.30 * (1/9) * 100, riferimento: 'Art. 13, c. 1, lett. a-bis) D.Lgs. 472/1997' };
+    return {
+      tipo: 'intermedio',
+      nome: 'Ravvedimento Intermedio (31-90 giorni)',
+      sanzioneBasePercentuale: baseCorta,
+      riduzione: 1 / 9,
+      percentualeSanzioneEffettiva: baseCorta / 9,
+      riferimento: 'Art. 13, c.1, lett. a-bis) D.Lgs. 472/1997',
+      isGiornaliero: false,
+    };
   }
+
   if (giorniRitardo <= 365) {
-    return { tipo: 'intermedio', nome: 'Ravvedimento Intermedio (91 gg - 1 anno)', riduzione: 1/8, percentualeSanzione: 0.30 * (1/8) * 100, riferimento: 'Art. 13, c. 1, lett. b) D.Lgs. 472/1997' };
+    return {
+      tipo: 'lungo',
+      nome: 'Ravvedimento Lungo (91 gg - 1 anno)',
+      sanzioneBasePercentuale: baseLunga,
+      riduzione: 1 / 8,
+      percentualeSanzioneEffettiva: baseLunga / 8,
+      riferimento: 'Art. 13, c.1, lett. b) D.Lgs. 472/1997',
+      isGiornaliero: false,
+    };
   }
+
   if (giorniRitardo <= 730) {
-    return { tipo: 'lungo', nome: 'Ravvedimento Lungo (1-2 anni)', riduzione: 1/6, percentualeSanzione: 0.30 * (1/6) * 100, riferimento: 'Art. 13, c. 1, lett. b-bis) D.Lgs. 472/1997' };
+    return {
+      tipo: 'ultrannuale',
+      nome: 'Ravvedimento Ultrannuale (1-2 anni)',
+      sanzioneBasePercentuale: baseLunga,
+      riduzione: 1 / 7,
+      percentualeSanzioneEffettiva: baseLunga / 7,
+      riferimento: 'Art. 13, c.1, lett. b-bis) D.Lgs. 472/1997',
+      isGiornaliero: false,
+    };
   }
-  return { tipo: 'lunghissimo', nome: 'Ravvedimento Lunghissimo (oltre 2 anni)', riduzione: 1/5, percentualeSanzione: 0.30 * (1/5) * 100, riferimento: 'Art. 13, c. 1, lett. b-ter) D.Lgs. 472/1997' };
+
+  return {
+    tipo: 'lunghissimo',
+    nome: 'Ravvedimento Lunghissimo (oltre 2 anni)',
+    sanzioneBasePercentuale: baseLunga,
+    riduzione: 1 / 6,
+    percentualeSanzioneEffettiva: baseLunga / 6,
+    riferimento: 'Art. 13, c.1, lett. b-ter) D.Lgs. 472/1997',
+    isGiornaliero: false,
+  };
 }
 
 export function calcolaInteressi(
@@ -72,30 +153,48 @@ export function calcolaInteressi(
     const giorniInAnno = differenceInDays(finePeriodo, inizioPeriodo);
 
     if (giorniInAnno > 0) {
-      const tassoAnno = tassiStorici.find(t => t.anno === anno)?.tassoPercentuale ?? 0;
+      const tassoAnno = tassiStorici.find((tasso) => tasso.anno === anno)?.tassoPercentuale ?? 0;
       const interessiAnno = importoOriginale * (tassoAnno / 100) * (giorniInAnno / 365);
-      dettaglio.push({ anno, giorniInAnno, importoSuCuiCalcolato: importoOriginale, tassoPercentuale: tassoAnno, interessiAnno: Math.round(interessiAnno * 1000000) / 1000000 });
+      dettaglio.push({
+        anno,
+        giorniInAnno,
+        importoSuCuiCalcolato: importoOriginale,
+        tassoPercentuale: tassoAnno,
+        interessiAnno: Math.round(interessiAnno * 1000000) / 1000000,
+      });
       totaleInteressi += interessiAnno;
     }
+
     dataCorrente = new Date(anno + 1, 0, 1);
   }
 
   return { dettaglio, totale: Math.round(totaleInteressi * 100) / 100 };
 }
 
-export function calcolaRavvedimento(input: InputCalcolo, tassiStorici: TassoInteresse[] = TASSI_INTERESSE_STORICI): RisultatoCalcolo {
+export function calcolaRavvedimento(
+  input: InputCalcolo,
+  tassiStorici: TassoInteresse[] = TASSI_INTERESSE_STORICI
+): RisultatoCalcolo {
   const { importoOriginale, dataScadenza, dataVersamento } = input;
   const giorniRitardo = differenceInDays(dataVersamento, dataScadenza);
 
-  if (giorniRitardo <= 0) throw new Error('La data di versamento deve essere successiva alla data di scadenza');
-  if (importoOriginale <= 0) throw new Error("L'importo deve essere maggiore di zero");
+  if (giorniRitardo <= 0) {
+    throw new Error('La data di versamento deve essere successiva alla data di scadenza');
+  }
 
-  const classificazione = classificaRavvedimento(giorniRitardo);
-  const sanzioneMassima = importoOriginale * 0.30;
-  const sanzioneRidotta = importoOriginale * (classificazione.percentualeSanzione / 100);
-  const { dettaglio: dettaglioInteressi, totale: totaleInteressi } = calcolaInteressi(importoOriginale, dataScadenza, dataVersamento, tassiStorici);
+  if (importoOriginale <= 0) {
+    throw new Error("L'importo deve essere maggiore di zero");
+  }
+
+  const regime = determinaRegime(dataScadenza);
+  const classificazione = classificaRavvedimento(giorniRitardo, regime);
+  const sanzioneMassima = importoOriginale * (classificazione.sanzioneBasePercentuale / 100);
+  const sanzioneRidotta = importoOriginale * (classificazione.percentualeSanzioneEffettiva / 100);
+  const { dettaglio: dettaglioInteressi, totale: totaleInteressi } =
+    calcolaInteressi(importoOriginale, dataScadenza, dataVersamento, tassiStorici);
   const totaleRavvedimento = importoOriginale + sanzioneRidotta + totaleInteressi;
   const totaleDaVersare = Math.round(totaleRavvedimento * 100) / 100;
+  const isPost = regime === 'POST_2024';
 
   return {
     input,
@@ -103,20 +202,24 @@ export function calcolaRavvedimento(input: InputCalcolo, tassiStorici: TassoInte
     tipoRavvedimento: classificazione.tipo,
     nomeTipoRavvedimento: classificazione.nome,
     sanzioneMassima,
-    percentualeSanzioneRidotta: classificazione.percentualeSanzione,
+    percentualeSanzioneRidotta: classificazione.percentualeSanzioneEffettiva,
     sanzioneRidotta,
     dettaglioInteressi,
     totaleInteressi,
     totaleRavvedimento,
     totaleDaVersare,
     riferimentoNormativo: classificazione.riferimento,
+    regime,
+    sanzioneBasePercentuale: classificazione.sanzioneBasePercentuale,
     noteCalcolo: [
-      `Sanzione base: 30% = \u20AC ${sanzioneMassima.toFixed(2)}`,
-      `Riduzione applicata: ${classificazione.riduzione.toFixed(4)} (${classificazione.nome})`,
-      `Sanzione ridotta: ${classificazione.percentualeSanzione.toFixed(4)}% = \u20AC ${sanzioneRidotta.toFixed(2)}`,
-      `Interessi calcolati su \u20AC ${importoOriginale.toFixed(2)} per ${giorniRitardo} giorni`,
-      `Base normativa: ${classificazione.riferimento}`,
-      `Regime sanzionatorio: post D.Lgs. 87/2024 (vigente dal 01/09/2024)`,
+      `Regime: ${isPost ? 'post D.Lgs. 87/2024 (dal 01/09/2024)' : 'ante riforma (fino al 31/08/2024)'}`,
+      `Sanzione base: ${classificazione.sanzioneBasePercentuale}% = EUR ${sanzioneMassima.toFixed(2)}`,
+      classificazione.isGiornaliero
+        ? `Riduzione: 1/10 x ${giorniRitardo}/15 giorni (${classificazione.nome})`
+        : `Riduzione: 1/${Math.round(1 / classificazione.riduzione)} (${classificazione.nome})`,
+      `Sanzione ridotta: ${classificazione.percentualeSanzioneEffettiva.toFixed(4)}% = EUR ${sanzioneRidotta.toFixed(2)}`,
+      `Interessi su EUR ${importoOriginale.toFixed(2)} per ${giorniRitardo} giorni`,
+      `Rif. normativo: ${classificazione.riferimento}`,
     ],
     calcolatoIl: new Date(),
   };

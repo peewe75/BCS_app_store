@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from '@clerk/nextjs';
+import { useAdminStatus } from '@/src/hooks/useAdminStatus';
 
 export function RequireAuth({
   children,
@@ -12,8 +13,8 @@ export function RequireAuth({
   requireAdmin?: boolean;
 }) {
   const router = useRouter();
-  const { isLoaded, isSignedIn, user } = useUser();
-  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin';
+  const { isLoaded, isSignedIn } = useUser();
+  const { isAdmin, isLoadingAdmin } = useAdminStatus();
 
   useEffect(() => {
     if (!isLoaded) {
@@ -25,12 +26,16 @@ export function RequireAuth({
       return;
     }
 
+    if (requireAdmin && isLoadingAdmin) {
+      return;
+    }
+
     if (requireAdmin && !isAdmin) {
       router.replace('/dashboard');
     }
-  }, [isAdmin, isLoaded, isSignedIn, requireAdmin, router]);
+  }, [isAdmin, isLoaded, isLoadingAdmin, isSignedIn, requireAdmin, router]);
 
-  if (!isLoaded) {
+  if (!isLoaded || (requireAdmin && isLoadingAdmin)) {
     return <div style={{ padding: '120px 24px', textAlign: 'center' }}>Caricamento sessione...</div>;
   }
 

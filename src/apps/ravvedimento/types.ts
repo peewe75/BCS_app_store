@@ -4,6 +4,7 @@ export interface InputCalcolo {
   dataVersamento: Date;
   codiceTributo?: string;
   nomeTributo?: string;
+  sezioneF24?: string;
 }
 
 export interface DettaglioInteressi {
@@ -27,18 +28,43 @@ export interface RisultatoCalcolo {
   totaleRavvedimento: number;
   totaleDaVersare: number;
   riferimentoNormativo: string;
+  regime: RegimeSanzionatorio;
+  sanzioneBasePercentuale: number;
   noteCalcolo: string[];
   calcolatoIl: Date;
 }
 
 export type TipoRavvedimento =
-  | 'sprint_15'
+  | 'sprint'
   | 'breve'
   | 'intermedio'
   | 'lungo'
-  | 'lunghissimo';
+  | 'ultrannuale'
+  | 'lunghissimo'
+  | 'post_pvc'
+  | 'post_schema';
 
-export type CategoriaTributo = 'IRPEF' | 'IVA' | 'IRAP' | 'IMU' | 'INPS' | 'ALTRO';
+export type RegimeSanzionatorio = 'PRE_2024' | 'POST_2024';
+
+export type CategoriaTributo =
+  | 'IRPEF'
+  | 'IRES'
+  | 'IVA'
+  | 'IRAP'
+  | 'IMU'
+  | 'CEDOLARE_SECCA'
+  | 'ADD_REGIONALE'
+  | 'ADD_COMUNALE'
+  | 'SOSTITUTIVA'
+  | 'RITENUTE'
+  | 'BOLLO'
+  | 'REGISTRO'
+  | 'CAMERALE'
+  | 'TOBIN'
+  | 'IVAFE_IVIE'
+  | 'PLUSVALENZE'
+  | 'INPS'
+  | 'ALTRO';
 
 export interface Tributo {
   codiceTributo: string;
@@ -66,6 +92,6 @@ export interface ScaglioneSanzione {
   descrizioneRiduzione: string;
   sanzioneBasePercentuale: number;
   riferimentoNormativo?: string;
-  regime: 'PRE_2024' | 'POST_2024';
+  regime: RegimeSanzionatorio;
   validoDa: string;
 }

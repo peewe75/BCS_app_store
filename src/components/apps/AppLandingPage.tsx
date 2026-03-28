@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useAuth, useUser } from '@clerk/nextjs';
 import VideoPlaceholder from '@/src/components/VideoPlaceholder';
+import { useAdminStatus } from '@/src/hooks/useAdminStatus';
 import { getAppLandingContent } from '@/src/lib/app-landing';
 import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
 import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
@@ -29,6 +30,7 @@ function buildBadgeText(app: AppRecord) {
 export default function AppLandingPage({ app }: { app: AppRecord }) {
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
+  const { isAdmin, isLoadingAdmin } = useAdminStatus();
   const [grant, setGrant] = useState<UserAppGrant | null>(null);
   const [grantLoaded, setGrantLoaded] = useState(false);
   const [videoLightbox, setVideoLightbox] = useState(false);
@@ -39,7 +41,6 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
   const workspaceHref = useMemo(() => app.internal_route ?? getAppWorkspaceRoute(app), [app]);
   const accentColor = app.accent_color ?? '#3713ec';
   const background = app.bg_gradient ?? `linear-gradient(135deg, ${app.bg_color ?? '#F5F5F7'} 0%, #ffffff 100%)`;
-  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin';
   const hasAccess = app.is_internal && (isAdmin || isFreeApp(app) || Boolean(grant));
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
       };
     }
 
-    if (!isLoaded || !grantLoaded) {
+    if (!isLoaded || !grantLoaded || isLoadingAdmin) {
       return {
         href: workspaceHref,
         label: 'Verifico accesso...',
@@ -117,7 +118,7 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
       label: `Sblocca ${app.name}`,
       external: false,
     };
-  }, [app, content.finalCtaLabel, content.primaryCtaLabel, grantLoaded, hasAccess, isLoaded, isSignedIn, workspaceHref]);
+  }, [app, content.finalCtaLabel, content.primaryCtaLabel, grantLoaded, hasAccess, isLoaded, isLoadingAdmin, isSignedIn, workspaceHref]);
 
   const secondaryAction = useMemo(() => {
     if (app.is_internal && !isSignedIn) {

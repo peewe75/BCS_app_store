@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useUser, UserButton } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
+import { useAdminStatus } from '@/src/hooks/useAdminStatus';
 import { normalizeApp, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
 import { getAppPublicRoute, getAppWorkspaceRoute } from '@/src/lib/app-routes';
 
@@ -52,6 +53,7 @@ export default function UserDashboard() {
   const router = useRouter();
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { isAdmin } = useAdminStatus();
   const [apps, setApps] = useState<AppRecord[]>([]);
   const [userApps, setUserApps] = useState<UserAppGrant[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
@@ -60,8 +62,6 @@ export default function UserDashboard() {
   const initials = getInitials(user?.firstName, user?.lastName, user?.primaryEmailAddress?.emailAddress);
   const displayName = user?.firstName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Utente';
   const memberSince = formatDate(user?.createdAt);
-  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin';
-
   const unlockedApps = useMemo(
     () =>
       userApps.reduce<Record<string, UserAppGrant>>((accumulator, currentApp) => {

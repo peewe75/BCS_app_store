@@ -1,6 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { isServerUserAdmin } from '@/src/lib/auth/admin-server';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
 import { hasSupabaseAdminConfig } from '@/src/lib/env';
 import {
@@ -21,11 +22,11 @@ export async function POST(req: Request) {
 
   // Credit check (skip for admin)
   if (hasSupabaseAdminConfig()) {
+    const supabase = createSupabaseAdminClient();
     const clerkUser = await currentUser();
-    const isAdmin = (clerkUser?.publicMetadata?.role as string | undefined) === 'admin';
+    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
 
     if (!isAdmin) {
-      const supabase = createSupabaseAdminClient();
       if (supabase) {
         const { data: creditRow } = await supabase
           .from('user_credits')

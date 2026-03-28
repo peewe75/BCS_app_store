@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
+import { useAdminStatus } from '@/src/hooks/useAdminStatus';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 import { getPublicAppById, APP_PLAN_CONFIG, type AppRecord, type UserAppGrant } from '@/src/lib/catalog';
 import ForfApp from '@/src/features/ForfApp';
@@ -24,6 +25,7 @@ function isFreeApp(app: AppRecord) {
 export default function AppAccessPage({ slug }: { slug: string }) {
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
+  const { isAdmin, isLoadingAdmin } = useAdminStatus();
   const searchParams = useSearchParams();
   const [app, setApp] = useState<AppRecord | null>(null);
   const [grant, setGrant] = useState<UserAppGrant | null>(null);
@@ -91,7 +93,6 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     };
   }, [getToken, isSignedIn, slug, user?.id]);
 
-  const isAdmin = (user?.publicMetadata?.role as string | undefined) === 'admin';
   const hasAccess = useMemo(() => {
     if (!app) return false;
     if (isAdmin) return true;
@@ -194,7 +195,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     void handleCheckout();
   }, [app, autoCheckoutStarted, checkoutLoading, hasAccess, isSignedIn, loading, searchParams]);
 
-  if (!isLoaded || loading) {
+  if (!isLoaded || loading || isLoadingAdmin) {
     return <div style={{ padding: '120px 24px', textAlign: 'center' }}>Caricamento modulo...</div>;
   }
 
