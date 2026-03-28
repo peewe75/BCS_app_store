@@ -7,14 +7,13 @@ import {
   parseHtmlReport,
   calculateTax,
   generateReportPdf,
-  detectScaleFactorFromTrades,
 } from '@/src/apps/trading/report-engine'
 import { extractTaxProfileFromClerkUser } from '@/src/apps/trading/tax-form-profile'
 import { isServerUserAdmin } from '@/src/lib/auth/admin-server'
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin'
 import type { Plan } from '@/src/apps/trading/types'
 
-type AccountScalePreference = 'auto' | 'standard' | 'centesimale'
+type AccountScalePreference = 'standard' | 'centesimale'
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -51,6 +50,9 @@ export async function POST(req: NextRequest) {
   const accountScalePreference = normalizeAccountScalePreference(formData.get('accountScale'))
 
   if (!file) return NextResponse.json({ error: 'File mancante.' }, { status: 400 })
+  if (!accountScalePreference) {
+    return NextResponse.json({ error: 'Seleziona il tipo conto: standard o centesimale.' }, { status: 400 })
+  }
   const MAX_FILE_SIZE = 15 * 1024 * 1024
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json(
@@ -135,12 +137,8 @@ export async function POST(req: NextRequest) {
     const htmlBlobKey = buildUploadBlobKey(userId, report.id)
     await saveTextBlob(htmlBlobKey, htmlContent, 'text/html; charset=utf-8')
 
-    // Calculate tax synchronously (no background functions needed on Vercel)
-    const scaleFactor = resolveScaleFactor(
-      accountScalePreference,
-      parsedReport.trades,
-      parsedReport.balances
-    )
+    // Calculate tax synchronously with explicit user-selected scale
+    const scaleFactor = resolveScaleFactor(accountScalePreference)
     const results = calculateTax(parsedReport.trades, parsedReport.balances, year, scaleFactor)
 
     // Generate PDF
@@ -186,26 +184,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function normalizeAccountScalePreference(value: FormDataEntryValue | null): AccountScalePreference {
+function normalizeAccountScalePreference(value: FormDataEntryValue | null): AccountScalePreference | null {
   if (value === 'standard' || value === 'centesimale') {
     return value
   }
 
-  return 'auto'
+  return null
 }
 
-function resolveScaleFactor(
-  preference: AccountScalePreference,
-  trades: Parameters<typeof detectScaleFactorFromTrades>[0],
-  balances: Parameters<typeof detectScaleFactorFromTrades>[1]
-) {
-  if (preference === 'standard') {
-    return 1
-  }
-
-  if (preference === 'centesimale') {
-    return 100
-  }
-
-  return detectScaleFactorFromTrades(trades, balances)
+function resolveScaleFactor(preference: AccountScalePreference) {
+  return preference === 'centesimale' ? 100 : 1
 }

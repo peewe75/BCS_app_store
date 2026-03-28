@@ -15,7 +15,7 @@ type ReportStatusResponse = {
   tax_due: number | null
 }
 
-type AccountScalePreference = 'auto' | 'standard' | 'centesimale'
+type AccountScalePreference = 'standard' | 'centesimale'
 
 function normalizeCellText(value: string) {
   return value.replace(/\s+/g, ' ').trim().replaceAll('\t', ' ')
@@ -71,7 +71,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [year, setYear] = useState(allowedYears[0] ?? new Date().getFullYear())
-  const [accountScale, setAccountScale] = useState<AccountScalePreference>('auto')
+  const [accountScale, setAccountScale] = useState<AccountScalePreference | ''>('')
   const [loading, setLoading] = useState(false)
   const [reportId, setReportId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
@@ -135,6 +135,10 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!file) return
+    if (!accountScale) {
+      setError('Seleziona il tipo conto prima di procedere.')
+      return
+    }
 
     setError(null)
     setStatus(null)
@@ -209,15 +213,18 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>Tipo conto</label>
             <select
               value={accountScale}
-              onChange={e => setAccountScale(e.target.value as AccountScalePreference)}
+              onChange={e => {
+                setAccountScale(e.target.value as AccountScalePreference | '')
+                setError(null)
+              }}
               style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', fontSize: 14, background: '#FAFAFA' }}
             >
-              <option value="auto">Auto (rilevamento automatico)</option>
+              <option value="" disabled>Seleziona tipo conto</option>
               <option value="standard">Standard</option>
               <option value="centesimale">Centesimale</option>
             </select>
             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#999' }}>
-              Se Auto non interpreta correttamente il report, forza manualmente Standard o Centesimale.
+              Scegli manualmente il formato del conto per evitare errori nei calcoli fiscali.
             </p>
           </div>
 
@@ -251,16 +258,16 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
 
           <button
             type="submit"
-            disabled={!file || loading}
+            disabled={!file || !accountScale || loading}
             style={{
               padding: '12px 28px',
               borderRadius: 100,
-              background: file && !loading ? accent : '#E5E7EB',
+              background: file && accountScale && !loading ? accent : '#E5E7EB',
               color: '#fff',
               border: 'none',
               fontWeight: 700,
               fontSize: 14,
-              cursor: file && !loading ? 'pointer' : 'not-allowed',
+              cursor: file && accountScale && !loading ? 'pointer' : 'not-allowed',
               alignSelf: 'flex-start',
             }}
           >
