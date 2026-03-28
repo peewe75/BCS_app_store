@@ -14,6 +14,8 @@ import { isServerUserAdmin } from '@/src/lib/auth/admin-server'
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin'
 import type { Plan } from '@/src/apps/trading/types'
 
+type AccountScalePreference = 'auto' | 'standard' | 'centesimale'
+
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
@@ -46,12 +48,13 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
   const year = Number(formData.get('year')) || new Date().getFullYear() - 1
+  const accountScalePreference = normalizeAccountScalePreference(formData.get('accountScale'))
 
   if (!file) return NextResponse.json({ error: 'File mancante.' }, { status: 400 })
-  const MAX_FILE_SIZE = 10 * 1024 * 1024
+  const MAX_FILE_SIZE = 15 * 1024 * 1024
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json(
-      { error: `File troppo grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Massimo consentito: 10 MB.` },
+      { error: `File troppo grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Massimo consentito: 15 MB.` },
       { status: 400 }
     )
   }
@@ -133,7 +136,11 @@ export async function POST(req: NextRequest) {
     await saveTextBlob(htmlBlobKey, htmlContent, 'text/html; charset=utf-8')
 
     // Calculate tax synchronously (no background functions needed on Vercel)
-    const scaleFactor = detectScaleFactorFromTrades(parsedReport.trades, parsedReport.balances)
+    const scaleFactor = resolveScaleFactor(
+      accountScalePreference,
+      parsedReport.trades,
+      parsedReport.balances
+    )
     const results = calculateTax(parsedReport.trades, parsedReport.balances, year, scaleFactor)
 
     // Generate PDF
@@ -173,4 +180,28 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function normalizeAccountScalePreference(value: FormDataEntryValue | null): AccountScalePreference {
+  if (value === 'standard' || value === 'centesimale') {
+    return value
+  }
+
+  return 'auto'
+}
+
+function resolveScaleFactor(
+  preference: AccountScalePreference,
+  trades: Parameters<typeof detectScaleFactorFromTrades>[0],
+  balances: Parameters<typeof detectScaleFactorFromTrades>[1]
+) {
+  if (preference === 'standard') {
+    return 1
+  }
+
+  if (preference === 'centesimale') {
+    return 100
+  }
+
+  return detectScaleFactorFromTrades(trades, balances)
 }

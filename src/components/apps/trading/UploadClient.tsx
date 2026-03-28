@@ -15,6 +15,8 @@ type ReportStatusResponse = {
   tax_due: number | null
 }
 
+type AccountScalePreference = 'auto' | 'standard' | 'centesimale'
+
 function normalizeCellText(value: string) {
   return value.replace(/\s+/g, ' ').trim().replaceAll('\t', ' ')
 }
@@ -69,6 +71,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [year, setYear] = useState(allowedYears[0] ?? new Date().getFullYear())
+  const [accountScale, setAccountScale] = useState<AccountScalePreference>('auto')
   const [loading, setLoading] = useState(false)
   const [reportId, setReportId] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
@@ -146,6 +149,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
       const formData = new FormData()
       formData.append('file', uploadFile)
       formData.append('year', String(year))
+      formData.append('accountScale', accountScale)
 
       const response = await fetch('/api/trading/upload', { method: 'POST', body: formData })
       const data = await readJsonResponse<{ reportId?: string }>(response)
@@ -199,6 +203,22 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
               ))}
             </select>
             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#999' }}>Base e Standard consentono solo anno corrente e precedente.</p>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>Tipo conto</label>
+            <select
+              value={accountScale}
+              onChange={e => setAccountScale(e.target.value as AccountScalePreference)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', fontSize: 14, background: '#FAFAFA' }}
+            >
+              <option value="auto">Auto (rilevamento automatico)</option>
+              <option value="standard">Standard</option>
+              <option value="centesimale">Centesimale</option>
+            </select>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#999' }}>
+              Se Auto non interpreta correttamente il report, forza manualmente Standard o Centesimale.
+            </p>
           </div>
 
           <div>
