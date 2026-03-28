@@ -42,7 +42,8 @@ export async function POST(
   }
 
   const parsed = parseHtmlReport(sourceHtml)
-  const results = calculateTax(parsed.trades, parsed.balances, report.year)
+  const storedScaleFactor = readStoredScaleFactor(report.report_data, parsed.trades, parsed.balances, report.year)
+  const results = calculateTax(parsed.trades, parsed.balances, report.year, storedScaleFactor ?? undefined)
 
   // Generate preview with PDF available flags
   const preview = createTaxFormPreview({
@@ -50,6 +51,7 @@ export async function POST(
     sourceHtml,
     results,
     profile,
+    scaleFactorOverride: storedScaleFactor ?? undefined,
     manualOverrides: body.manualOverrides,
     internalPdfAvailable: true,
     facsimilePdfAvailable: true,
@@ -92,4 +94,81 @@ export async function POST(
     savedAt: record.savedAt,
     generatedAt,
   })
+}
+
+function readStoredScaleFactor(
+  reportData: unknown,
+  trades: Parameters<typeof calculateTax>[0],
+  balances: Parameters<typeof calculateTax>[1],
+  year: number
+) {
+  if (!reportData || typeof reportData !== 'object') {
+    return null
+  }
+
+  const stored = reportData as {
+    scaleFactor?: unknown
+    corrispettivo?: unknown
+    costo?: unknown
+    netProfit?: unknown
+    totalInterest?: unknown
+    taxDue?: unknown
+  }
+
+  if (stored.scaleFactor === 1 || stored.scaleFactor === 100) {
+    return stored.scaleFactor
+  }
+
+  const snapshot = {
+    corrispettivo: toFiniteNumber(stored.corrispettivo),
+    costo: toFiniteNumber(stored.costo),
+    netProfit: toFiniteNumber(stored.netProfit),
+    totalInterest: toFiniteNumber(stored.totalInterest),
+    taxDue: toFiniteNumber(stored.taxDue),
+  }
+
+  const comparableValues = Object.values(snapshot).filter((value) => value !== null)
+  if (comparableValues.length === 0) {
+    return null
+  }
+
+  const standardResults = calculateTax(trades, balances, year, 1)
+  const centResults = calculateTax(trades, balances, year, 100)
+
+  return scoreStoredResults(snapshot, centResults) < scoreStoredResults(snapshot, standardResults) ? 100 : 1
+}
+
+function scoreStoredResults(
+  snapshot: {
+    corrispettivo: number | null
+    costo: number | null
+    netProfit: number | null
+    totalInterest: number | null
+    taxDue: number | null
+  },
+  results: ReturnType<typeof calculateTax>
+) {
+  let score = 0
+
+  if (snapshot.corrispettivo !== null) {
+    score += Math.abs(snapshot.corrispettivo - results.corrispettivo)
+  }
+  if (snapshot.costo !== null) {
+    score += Math.abs(snapshot.costo - results.costo)
+  }
+  if (snapshot.netProfit !== null) {
+    score += Math.abs(snapshot.netProfit - results.netProfit)
+  }
+  if (snapshot.totalInterest !== null) {
+    score += Math.abs(snapshot.totalInterest - results.totalInterest)
+  }
+  if (snapshot.taxDue !== null) {
+    score += Math.abs(snapshot.taxDue - results.taxDue)
+  }
+
+  return score
+}
+
+function toFiniteNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }

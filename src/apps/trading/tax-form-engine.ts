@@ -23,6 +23,7 @@ type ReportPreviewInput = {
   sourceHtml: string
   results: TaxResults
   profile: TaxProfileInput
+  scaleFactorOverride?: number
   manualOverrides?: TaxFormManualOverrides
   internalPdfAvailable?: boolean
   facsimilePdfAvailable?: boolean
@@ -127,7 +128,7 @@ export function createTaxFormPreview(args: ReportPreviewInput): TaxFormPreview {
   const blockingIssues: TaxFormBlockingIssue[] = []
   const fieldSources: Record<string, TaxFormFieldSource> = {}
   const parsedContext = parseTaxFormContext(args.sourceHtml)
-  const scaleResolution = detectScaleFactor(parsedContext)
+  const scaleResolution = resolveScaleFactor(parsedContext, args.scaleFactorOverride)
 
   if (scaleResolution.warning) {
     warnings.push(scaleResolution.warning)
@@ -776,6 +777,17 @@ function detectScaleFactor(parsedContext: ParsedTaxFormContext) {
           } satisfies TaxFormWarning)
         : null,
   }
+}
+
+function resolveScaleFactor(parsedContext: ParsedTaxFormContext, scaleFactorOverride?: number) {
+  if (scaleFactorOverride === 1 || scaleFactorOverride === 100) {
+    return {
+      scaleFactor: scaleFactorOverride,
+      warning: null,
+    }
+  }
+
+  return detectScaleFactor(parsedContext)
 }
 
 function resolveBrokerCountry(

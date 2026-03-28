@@ -165,7 +165,11 @@ export async function POST(req: NextRequest) {
         status: 'ready',
         net_profit: results.netProfit,
         tax_due: results.taxDue,
-        report_data: results,
+        report_data: {
+          ...results,
+          scaleFactor,
+          accountScalePreference,
+        },
       })
       .eq('id', report.id)
 
