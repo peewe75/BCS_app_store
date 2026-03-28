@@ -44,7 +44,9 @@ type BrokerMetadata = {
   ownerName: string | null
   accountId: string | null
   accountLabel: string | null
+  brokerName: string | null
   companyName: string | null
+  serverName: string | null
   currency: string | null
 }
 
@@ -68,9 +70,10 @@ type DerivedTimeline = {
   lastActivityAt: string | null
 }
 
-type BrokerCountryRule = {
+type BrokerIdentityRule = {
   match: RegExp
-  code: string
+  brokerName: string
+  countryCode: string
 }
 
 const NORMALIZED_REPORT_PREFIX = 'ATF_TSV_V1\n'
@@ -91,35 +94,35 @@ const DISCLAIMER_LINES = [
   'Non e un documento ufficiale da depositare.',
 ]
 
-const BROKER_COUNTRY_RULES: BrokerCountryRule[] = [
-  { match: /\bpu\s*prime\s*ltd\b/i, code: 'MU' },
-  { match: /\bpu\s*prime\s*limited\b/i, code: 'SC' },
-  { match: /\bic\s*markets\b/i, code: 'AU' },
-  { match: /\braw\s*trading\s*ltd\b/i, code: 'SC' },
-  { match: /\bpepperstone\b/i, code: 'AU' },
-  { match: /\bpepperstone\s*limited\b/i, code: 'GB' },
-  { match: /\btrading\s*point\b/i, code: 'CY' },
-  { match: /\bxm\s*global\b/i, code: 'BZ' },
-  { match: /\bfp\s*markets\b/i, code: 'AU' },
-  { match: /\bfxcm\b/i, code: 'GB' },
-  { match: /\bexness\b/i, code: 'SC' },
-  { match: /\broboforex\b/i, code: 'BZ' },
-  { match: /\bava\s*trade\b/i, code: 'IE' },
-  { match: /\bava\s*financial\b/i, code: 'IE' },
-  { match: /\btickmill\b/i, code: 'SC' },
-  { match: /\badmiral\s*markets\b/i, code: 'EE' },
-  { match: /\badmirals\b/i, code: 'EE' },
-  { match: /\betoro\b/i, code: 'CY' },
-  { match: /\boanda\b/i, code: 'US' },
-  { match: /\big\s*markets\b/i, code: 'GB' },
-  { match: /\bswissquote\b/i, code: 'CH' },
-  { match: /\binteractive\s*brokers\b/i, code: 'US' },
-  { match: /\bgain\s*capital\b/i, code: 'US' },
-  { match: /\bfxpro\b/i, code: 'CY' },
-  { match: /\bhfm\b|\bhot\s*forex\b/i, code: 'SC' },
-  { match: /\bvantage\b/i, code: 'AU' },
-  { match: /\bfusion\s*markets\b/i, code: 'AU' },
-  { match: /\bdarwinex\b/i, code: 'GB' },
+const BROKER_IDENTITY_RULES: BrokerIdentityRule[] = [
+  { match: /\bpu\s*prime\s*ltd\b/i, brokerName: 'PU Prime', countryCode: 'MU' },
+  { match: /\bpu\s*prime\s*limited\b/i, brokerName: 'PU Prime', countryCode: 'SC' },
+  { match: /\braw\s*trading\s*ltd\b/i, brokerName: 'IC Markets', countryCode: 'SC' },
+  { match: /\bic\s*markets\b/i, brokerName: 'IC Markets', countryCode: 'AU' },
+  { match: /\bpepperstone\s*limited\b/i, brokerName: 'Pepperstone', countryCode: 'GB' },
+  { match: /\bpepperstone\b/i, brokerName: 'Pepperstone', countryCode: 'AU' },
+  { match: /\btrading\s*point\b/i, brokerName: 'XM', countryCode: 'CY' },
+  { match: /\bxm\s*global\b/i, brokerName: 'XM', countryCode: 'BZ' },
+  { match: /\bfp\s*markets\b/i, brokerName: 'FP Markets', countryCode: 'AU' },
+  { match: /\bfxcm\b/i, brokerName: 'FXCM', countryCode: 'GB' },
+  { match: /\bexness\b/i, brokerName: 'Exness', countryCode: 'SC' },
+  { match: /\broboforex\b/i, brokerName: 'RoboForex', countryCode: 'BZ' },
+  { match: /\bava\s*trade\b/i, brokerName: 'AvaTrade', countryCode: 'IE' },
+  { match: /\bava\s*financial\b/i, brokerName: 'AvaTrade', countryCode: 'IE' },
+  { match: /\btickmill\b/i, brokerName: 'Tickmill', countryCode: 'SC' },
+  { match: /\badmiral\s*markets\b/i, brokerName: 'Admirals', countryCode: 'EE' },
+  { match: /\badmirals\b/i, brokerName: 'Admirals', countryCode: 'EE' },
+  { match: /\betoro\b/i, brokerName: 'eToro', countryCode: 'CY' },
+  { match: /\boanda\b/i, brokerName: 'OANDA', countryCode: 'US' },
+  { match: /\big\s*markets\b/i, brokerName: 'IG Markets', countryCode: 'GB' },
+  { match: /\bswissquote\b/i, brokerName: 'Swissquote', countryCode: 'CH' },
+  { match: /\binteractive\s*brokers\b/i, brokerName: 'Interactive Brokers', countryCode: 'US' },
+  { match: /\bgain\s*capital\b/i, brokerName: 'Forex.com', countryCode: 'US' },
+  { match: /\bfxpro\b/i, brokerName: 'FxPro', countryCode: 'CY' },
+  { match: /\bhfm\b|\bhot\s*forex\b/i, brokerName: 'HFM', countryCode: 'SC' },
+  { match: /\bvantage\b/i, brokerName: 'Vantage', countryCode: 'AU' },
+  { match: /\bfusion\s*markets\b/i, brokerName: 'Fusion Markets', countryCode: 'AU' },
+  { match: /\bdarwinex\b/i, brokerName: 'Darwinex', countryCode: 'GB' },
 ]
 
 export function createTaxFormPreview(args: ReportPreviewInput): TaxFormPreview {
@@ -151,16 +154,10 @@ export function createTaxFormPreview(args: ReportPreviewInput): TaxFormPreview {
     fieldSources
   )
 
-  const brokerName = pickResolvedValue(
-    [
-      resolvedString(parsedContext.metadata.companyName, 'html'),
-      resolvedString(deriveBrokerName(parsedContext.metadata.accountLabel), 'derived'),
-      resolvedString(manualOverrides.brokerName, 'manual'),
-      { value: 'Broker non identificato', source: 'fallback' as const },
-    ],
-    'broker_name',
-    fieldSources
-  )
+  const brokerIdentity = resolveBrokerIdentity(parsedContext.metadata, manualOverrides)
+  fieldSources.broker_name = brokerIdentity.brokerName.source
+
+  const brokerName = brokerIdentity.brokerName.value ?? 'Broker non identificato'
 
   const currency = pickResolvedValue(
     [resolvedString(parsedContext.metadata.currency, 'html'), { value: 'EUR', source: 'fallback' as const }],
@@ -194,7 +191,7 @@ export function createTaxFormPreview(args: ReportPreviewInput): TaxFormPreview {
     })
   }
 
-  const brokerCountry = resolveBrokerCountry(parsedContext.metadata, brokerName, manualOverrides.brokerCountryCode)
+  const brokerCountry = brokerIdentity.country
   fieldSources.broker_country_code = brokerCountry.source
 
   if (!brokerCountry.value) {
@@ -439,28 +436,44 @@ function extractRows(content: string): string[][] {
 }
 
 function extractMetadata(rows: string[][]): BrokerMetadata {
-  const ownerName = findLabelValue(rows, 'Name')
-  const accountValue = findLabelValue(rows, 'Account')
-  const companyName = findLabelValue(rows, 'Company')
+  const ownerName = findLabelValue(rows, ['Name', 'Client Name', 'Account Name'])
+  const accountValue = findLabelValue(rows, ['Account', 'Login', 'Account Number'])
+  const brokerValue = findLabelValue(rows, ['Broker', 'Broker Name'])
+  const companyName = findLabelValue(rows, ['Company', 'Financial Company'])
+  const serverName = findLabelValue(rows, ['Server', 'Server Name'])
+  const currencyValue = findLabelValue(rows, ['Currency', 'Deposit Currency'])
   const accountId = accountValue?.match(/^([^\s(]+)/)?.[1] ?? null
   const accountLabel = accountValue ?? null
-  const currencyMatch = accountValue?.match(/\(([A-Z]{3})\s*,/i)
+  const currencyMatch =
+    accountValue?.match(/\(([A-Z]{3})\s*,/i) ??
+    accountValue?.match(/\b([A-Z]{3})\b/) ??
+    currencyValue?.match(/\b([A-Z]{3})\b/i)
   const currency = currencyMatch?.[1]?.toUpperCase() ?? null
+  const brokerName =
+    normalizeBrokerDisplayName(brokerValue) ??
+    normalizeBrokerDisplayName(companyName) ??
+    normalizeBrokerDisplayName(deriveBrokerName(accountLabel)) ??
+    normalizeBrokerDisplayName(serverName)
 
   return {
     ownerName,
     accountId,
     accountLabel,
+    brokerName,
     companyName,
+    serverName,
     currency,
   }
 }
 
-function findLabelValue(rows: string[][], label: string) {
-  const normalizedLabel = `${label.toLowerCase()}:`
+function findLabelValue(rows: string[][], labels: string[]) {
+  const normalizedLabels = labels.map(label => label.trim().toLowerCase())
 
   for (const row of rows) {
-    const labelIndex = row.findIndex(cell => cell.trim().toLowerCase() === normalizedLabel)
+    const labelIndex = row.findIndex(cell => {
+      const normalizedCell = cell.trim().toLowerCase().replace(/:$/, '')
+      return normalizedLabels.includes(normalizedCell)
+    })
     if (labelIndex === -1) continue
 
     const value = row
@@ -469,6 +482,26 @@ function findLabelValue(rows: string[][], label: string) {
       .find(Boolean)
 
     if (value) return value
+  }
+
+  for (const label of normalizedLabels) {
+    const looseMatch = findLooseLabelValue(rows, label)
+    if (looseMatch) return looseMatch
+  }
+
+  return null
+}
+
+function findLooseLabelValue(rows: string[][], label: string) {
+  const pattern = new RegExp(`\\b${escapeForRegExp(label)}\\b\\s*:\\s*(.+)$`, 'i')
+
+  for (const row of rows) {
+    for (const cell of row) {
+      const match = cell.trim().match(pattern)
+      if (match?.[1]?.trim()) {
+        return match[1].trim()
+      }
+    }
   }
 
   return null
@@ -790,26 +823,48 @@ function resolveScaleFactor(parsedContext: ParsedTaxFormContext, scaleFactorOver
   return detectScaleFactor(parsedContext)
 }
 
-function resolveBrokerCountry(
+function resolveBrokerIdentity(
   metadata: BrokerMetadata,
-  brokerName: string | null,
-  manualOverride?: string | null
-): ResolvedValue<string | null> {
-  const normalizedManual = normalizeCountryCode(manualOverride)
-  if (normalizedManual) {
-    return { value: normalizedManual, source: 'manual' }
+  manualOverrides: TaxFormManualOverrides
+): {
+  brokerName: ResolvedValue<string | null>
+  country: ResolvedValue<string | null>
+} {
+  const normalizedManualBroker = normalizeBrokerDisplayName(manualOverrides.brokerName)
+  const normalizedManualCountry = normalizeCountryCode(manualOverrides.brokerCountryCode)
+
+  const candidates = [
+    metadata.brokerName,
+    metadata.companyName,
+    metadata.serverName,
+    metadata.accountLabel,
+  ].filter(Boolean) as string[]
+
+  const matchedRule = candidates
+    .map(candidate => BROKER_IDENTITY_RULES.find(entry => entry.match.test(candidate)))
+    .find(Boolean)
+
+  const mappedBroker = matchedRule?.brokerName ?? null
+  const mappedCountry = matchedRule?.countryCode ?? null
+  const htmlBroker = normalizeBrokerDisplayName(metadata.brokerName ?? metadata.companyName)
+  const derivedBroker = normalizeBrokerDisplayName(deriveBrokerName(metadata.accountLabel) ?? metadata.serverName)
+
+  return {
+    brokerName: normalizedManualBroker
+      ? { value: normalizedManualBroker, source: 'manual' }
+      : mappedBroker
+        ? { value: mappedBroker, source: 'mapping' }
+        : htmlBroker
+          ? { value: htmlBroker, source: 'html' }
+          : derivedBroker
+            ? { value: derivedBroker, source: 'derived' }
+            : { value: null, source: 'fallback' },
+    country: normalizedManualCountry
+      ? { value: normalizedManualCountry, source: 'manual' }
+      : mappedCountry
+        ? { value: mappedCountry, source: 'mapping' }
+        : { value: null, source: 'fallback' },
   }
-
-  const candidates = [metadata.companyName, brokerName, metadata.accountLabel].filter(Boolean) as string[]
-
-  for (const candidate of candidates) {
-    const rule = BROKER_COUNTRY_RULES.find(entry => entry.match.test(candidate))
-    if (rule) {
-      return { value: rule.code, source: 'mapping' }
-    }
-  }
-
-  return { value: null, source: 'fallback' }
 }
 
 function deriveBrokerName(accountLabel: string | null) {
@@ -818,6 +873,20 @@ function deriveBrokerName(accountLabel: string | null) {
   if (!match) return null
   const parts = match[1].split(',').map(part => part.trim()).filter(Boolean)
   return parts[1] ?? null
+}
+
+function normalizeBrokerDisplayName(value: string | null | undefined) {
+  if (!value) return null
+
+  const normalized = value
+    .replace(/\s+/g, ' ')
+    .replace(/\b(server|live|demo)\b.*$/i, '')
+    .replace(/\b(ltd|limited|llc|inc|pty|pty ltd|group|global|financial|services)\b/gi, '')
+    .replace(/[(),-]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+  return normalized || value.trim() || null
 }
 
 function resolvedString(value: string | null | undefined, source: TaxFormFieldSource) {
@@ -842,6 +911,10 @@ function pickResolvedValue<T>(
 function normalizeTaxCode(value: string | null | undefined) {
   const normalized = (value ?? '').replace(/\s+/g, '').trim().toUpperCase()
   return normalized || null
+}
+
+function escapeForRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function normalizeCountryCode(value: string | null | undefined) {
