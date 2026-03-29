@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { env } from '@/src/lib/env';
 import { SiteHeader } from '@/src/components/site/SiteHeader';
 import { SiteFooter } from '@/src/components/site/SiteFooter';
+import { JsonLd, suiteLd } from '@/src/components/JsonLd';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -53,6 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <JsonLd data={suiteLd} />
         {env.clerkPublishableKey ? (
           <ClerkProvider publishableKey={env.clerkPublishableKey}>
             <SiteHeader />

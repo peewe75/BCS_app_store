@@ -11,6 +11,8 @@ import { getAppWorkspaceRoute } from '@/src/lib/app-routes';
 import type { AppRecord, UserAppGrant } from '@/src/lib/catalog';
 import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public';
 
+import { env } from '@/src/lib/env';
+
 function isFreeApp(app: AppRecord) {
   return app.pricing_model === 'free' || app.id === 'forf';
 }
@@ -27,10 +29,23 @@ function buildBadgeText(app: AppRecord) {
   return app.pricing_badge || app.price_label || 'Catalogo BCS AI';
 }
 
-export default function AppLandingPage({ app }: { app: AppRecord }) {
-  const { getToken } = useAuth();
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { isAdmin, isLoadingAdmin } = useAdminStatus();
+function InnerAppLandingPage({
+  app,
+  getToken,
+  isLoaded,
+  isSignedIn,
+  user,
+  isAdmin,
+  isLoadingAdmin,
+}: {
+  app: AppRecord;
+  getToken: any;
+  isLoaded: boolean;
+  isSignedIn: boolean;
+  user: any;
+  isAdmin: boolean;
+  isLoadingAdmin: boolean;
+}) {
   const [grant, setGrant] = useState<UserAppGrant | null>(null);
   const [grantLoaded, setGrantLoaded] = useState(false);
   const [videoLightbox, setVideoLightbox] = useState(false);
@@ -595,4 +610,41 @@ export default function AppLandingPage({ app }: { app: AppRecord }) {
       )}
     </main>
   );
+}
+
+function ClerkAppLandingPage({ app }: { app: AppRecord }) {
+  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const { isAdmin, isLoadingAdmin } = useAdminStatus();
+
+  return (
+    <InnerAppLandingPage
+      app={app}
+      getToken={getToken}
+      isLoaded={isLoaded}
+      isSignedIn={!!isSignedIn}
+      user={user}
+      isAdmin={isAdmin}
+      isLoadingAdmin={isLoadingAdmin}
+    />
+  );
+}
+
+export default function AppLandingPage({ app }: { app: AppRecord }) {
+  // If Clerk is not configured, load without auth context
+  if (!env.clerkPublishableKey) {
+    return (
+      <InnerAppLandingPage
+        app={app}
+        getToken={() => null as any}
+        isLoaded={true}
+        isSignedIn={false}
+        user={null}
+        isAdmin={false}
+        isLoadingAdmin={false}
+      />
+    );
+  }
+
+  return <ClerkAppLandingPage app={app} />;
 }

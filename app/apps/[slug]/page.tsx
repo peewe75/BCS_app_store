@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import AppLandingPage from '@/src/components/apps/AppLandingPage';
 import { getPublicAppById, getPublicApps } from '@/src/lib/catalog';
+import { JsonLd, appLd } from '@/src/components/JsonLd';
 
 const APP_META: Record<string, { title: string; description: string }> = {
   ugc: {
@@ -74,5 +75,12 @@ export default async function AppPage({
     notFound();
   }
 
-  return <AppLandingPage app={app} />;
+  // app is non-null here: notFound() always throws at runtime.
+  // Non-null assertion because the local TS server doesn't resolve next types correctly.
+  return (
+    <>
+      <JsonLd data={appLd(app!)} />
+      <AppLandingPage app={app!} />
+    </>
+  );
 }

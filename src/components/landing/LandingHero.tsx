@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { env } from '@/src/lib/env';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -165,7 +166,51 @@ export default function LandingHero() {
             </a>
 
             {/* CTA secondario: sign-up per i non loggati, dashboard per i loggati */}
-            <SignedOut>
+            {env.clerkPublishableKey ? (
+              <>
+                <SignedOut>
+                  <Link
+                    href="/sign-up"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '14px 28px',
+                      borderRadius: 100,
+                      background: 'rgba(255,255,255,0.9)',
+                      color: '#1D1D1F',
+                      textDecoration: 'none',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      border: '1px solid rgba(0,0,0,0.1)',
+                      backdropFilter: 'blur(8px)',
+                    }}
+                  >
+                    Inizia gratis
+                  </Link>
+                </SignedOut>
+                <SignedIn>
+                  <Link
+                    href="/dashboard"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '14px 28px',
+                      borderRadius: 100,
+                      background: 'rgba(255,255,255,0.9)',
+                      color: '#1D1D1F',
+                      textDecoration: 'none',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      border: '1px solid rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    Vai alla Dashboard
+                  </Link>
+                </SignedIn>
+              </>
+            ) : (
               <Link
                 href="/sign-up"
                 style={{
@@ -185,27 +230,7 @@ export default function LandingHero() {
               >
                 Inizia gratis
               </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '14px 28px',
-                  borderRadius: 100,
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#1D1D1F',
-                  textDecoration: 'none',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  border: '1px solid rgba(0,0,0,0.1)',
-                }}
-              >
-                Vai alla Dashboard
-              </Link>
-            </SignedIn>
+            )}
           </motion.div>
 
           {/* Microcopy trust row */}
