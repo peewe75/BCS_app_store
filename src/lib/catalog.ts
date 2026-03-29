@@ -60,13 +60,26 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
   trading: {
     plans: [
       {
-        code: 'one_time',
-        label: 'Acquisto unico — €9,90',
-        features: ['Report fiscale completo', 'Supporto tutti i broker', 'Download PDF', 'Storico calcoli'],
+        code: 'base',
+        label: 'Base - EUR 9,90',
+        description: 'Per un singolo report annuale.',
+        features: ['Anno corrente e precedente', '1 report per anno fiscale', 'Riepilogo fiscale in PDF'],
+      },
+      {
+        code: 'standard',
+        label: 'Standard - EUR 19,90',
+        description: 'Per chi gestisce piu conti nello stesso anno.',
+        features: ['Anno corrente e precedente', 'Fino a 3 report per anno fiscale', 'Storico report e download PDF'],
+      },
+      {
+        code: 'pro',
+        label: 'Pro - EUR 34,90',
+        description: 'Per studi e trader con storico completo.',
+        features: ['Report illimitati', 'Accesso agli anni precedenti', 'Storico completo e priorita operativa'],
       },
     ],
     limitKeys: [
-      { key: 'reports_per_month', label: 'Report al mese', type: 'number', period: 'monthly', default: 5 },
+      { key: 'reports_per_year', label: 'Report per anno fiscale', type: 'number', default: 1 },
     ],
   },
   ravvedimento: {
@@ -188,18 +201,11 @@ const STATIC_APPS: AppRecord[] = [
   {
     id: 'ugc',
     name: 'UGC Ad Creator',
-    tagline: 'Trasforma una foto in un video pubblicitario in 60 secondi',
-    description:
-      'Carica una foto del prodotto, scegli il formato e ottieni un video promozionale professionale pronto per TikTok, Instagram Reels e campagne Meta. Powered by Google Gemini.',
+    tagline: 'Da una foto, un video promozionale HD',
+    description: 'Modulo base interno pronto per job e libreria video.',
     category: 'Creativita e video',
     badge: 'Video AI',
-    features: [
-      'Video UGC in 60 secondi da una sola foto',
-      'Formati ottimizzati: TikTok, Reels, YouTube Shorts',
-      'Script generato da AI: hook, benefit, call to action',
-      'Voiceover e sottotitoli automatici inclusi',
-      '1 credito di prova gratuito — nessuna carta richiesta',
-    ],
+    features: [],
     accent_color: '#ec4899',
     bg_color: '#F5F5F7',
     bg_gradient: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
@@ -312,26 +318,19 @@ const STATIC_APPS: AppRecord[] = [
   },
   {
     id: 'trading',
-    name: 'Trading Fiscale',
-    tagline: 'Il report fiscale per il tuo broker, pronto in pochi minuti',
-    description:
-      'Carica il file di rendiconto del tuo broker e ottieni un report fiscale professionale con calcolo P&L, imposte dovute e riepilogo pronto per il commercialista o la dichiarazione dei redditi.',
+    name: 'Dichiarazione Trading',
+    tagline: 'Report fiscale professionale per il tuo broker',
+    description: 'Workspace dati e storico report.',
     category: 'Finanza e tax',
     badge: 'Finanza',
-    features: [
-      'Supporto tutti i broker italiani ed esteri (DEGIRO, Fineco, Interactive Brokers…)',
-      'Calcolo automatico P&L e imposte dovute',
-      'Report PDF professionale in formato dichiarazione',
-      'Storico calcoli salvato nel tuo account',
-      'Acquisto una tantum da €9,90 — nessun abbonamento',
-    ],
+    features: [],
     accent_color: '#10b981',
     bg_color: '#F5F5F7',
     bg_gradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-    pricing_badge: 'Da 9,90',
+    pricing_badge: 'Base da EUR 9,90',
     pricing_model: 'one-time',
-    price_label: 'Da 9,90',
-    cta_text: 'Apri Trading',
+    price_label: 'Base da EUR 9,90',
+    cta_text: 'Apri Dichiarazione Trading',
     cta_href: null,
     is_internal: true,
     internal_route: getAppWorkspaceRoute('trading'),
@@ -342,22 +341,70 @@ const STATIC_APPS: AppRecord[] = [
     is_active: true,
     is_coming_soon: false,
     created_at: null,
+    landing_content: {
+      eyebrow: 'Dichiarazione Trading in BCS AI Suite',
+      headline: 'Dal report MetaTrader al materiale fiscale, senza uscire dalla suite.',
+      subheadline:
+        'Registrazione con Clerk, acquisto nella dashboard unificata e workspace dedicato: carichi un export HTML MetaTrader 4/5, scegli anno fiscale e tipo conto, poi ottieni report e facsimili in un flusso coerente.',
+      trustLine:
+        'Un solo account, dashboard condivisa con le altre app, accesso al workspace Trading e dati applicativi su Supabase gia integrati nel progetto BCS AI Suite.',
+      primaryCtaLabel: 'Registrati e attiva il piano',
+      secondaryCtaLabel: 'Scopri come funziona',
+      problemTitle: 'Non serve un microsito separato. Serve un percorso giusto.',
+      problemBody:
+        'Dichiarazione Trading non apre un secondo ecosistema: usa lo stesso progetto Clerk, la stessa dashboard e lo stesso modello di accesso delle altre app della suite.',
+      sections: [
+        {
+          id: 'upload',
+          title: 'Importa il report del broker',
+          body:
+            'Il workspace parte da file HTML MetaTrader 4/5, cosi il punto di ingresso resta concreto e aderente al prodotto reale.',
+          bullets: [
+            'Upload di file HTML MetaTrader 4/5.',
+            'Selezione anno fiscale e tipo conto standard o centesimale.',
+            'Flusso operativo dentro lo stesso workspace della suite.',
+          ],
+        },
+        {
+          id: 'output',
+          title: 'Ottieni materiale fiscale riutilizzabile',
+          body:
+            'Il sistema elabora il report, salva lo storico e mette a disposizione PDF riepilogativo e facsimili RW/RT secondo il piano attivo.',
+          bullets: [
+            'Riepilogo fiscale in PDF.',
+            'Storico report nel workspace.',
+            'Facsimili RW/RT e limiti coerenti con il piano.',
+          ],
+        },
+      ],
+      benefitsTitle: 'Perche dentro BCS AI Suite',
+      benefits: [
+        'Registrazione e login condivisi con Clerk.',
+        'Grant piano letto da user_apps senza duplicare la logica auth.',
+        'Supabase gia collegato a profili, grants e trading_reports.',
+        'Passaggio naturale da landing a dashboard e workspace Trading.',
+      ],
+      audienceTitle: 'Per chi e pensata',
+      audienceBody:
+        'Per trader retail e studi che vogliono un percorso fiscale piu ordinato, partendo da un export del broker e arrivando a un output consultabile nella suite.',
+      pricingTitle: 'Piani Trading',
+      pricingLine: 'Base, Standard e Pro: da EUR 9,90 a EUR 34,90 con grant piano dentro la dashboard.',
+      supportLine:
+        'L accesso resta lo stesso della suite: registrazione, dashboard, attivazione del piano e apertura del workspace dedicato.',
+      closingHeadline: 'Entra nella suite, poi apri il workspace giusto',
+      closingBody:
+        'Il modo piu semplice per usare Dichiarazione Trading e seguire il funnel reale di BCS AI Suite, senza passaggi separati o credenziali duplicate.',
+      finalCtaLabel: 'Apri il workspace Trading',
+    },
   },
   {
     id: 'ravvedimento',
     name: 'RavvedimentoFacile',
-    tagline: 'Calcola sanzione, interessi e importo totale da versare in pochi secondi',
-    description:
-      'Sostituisce 45 minuti di Excel con 90 secondi di calcolo automatico. Normativa 2025 aggiornata: tassi legali, scaglioni temporali e codici tributo inclusi.',
+    tagline: 'Il ravvedimento operoso, finalmente semplice',
+    description: 'Calcolo interno con storico su Supabase.',
     category: 'Fiscale',
     badge: 'Fiscale',
-    features: [
-      'Calcolo automatico sanzione, interessi e totale dovuto',
-      'Tassi legali e scaglioni 2025 sempre aggiornati',
-      'Tutte le imposte: IRPEF, IVA, IRES, IRAP e altre',
-      'Storico calcoli salvato — mai rifare lo stesso calcolo',
-      'Esportazione PDF/Excel — pronto per il commercialista',
-    ],
+    features: [],
     accent_color: '#3713ec',
     bg_color: '#FFFFFF',
     bg_gradient: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
@@ -379,18 +426,11 @@ const STATIC_APPS: AppRecord[] = [
   {
     id: 'forf',
     name: 'Forfettari AI',
-    tagline: 'Calcola le tasse del regime forfettario in modo corretto e aggiornato',
-    description:
-      'Inserisci il tuo fatturato e il codice ATECO: in pochi secondi ottieni le imposte da pagare, i contributi INPS e il netto stimato. Soglie e aliquote 2025 incluse. Completamente gratuito.',
+    tagline: 'Calcolo tasse regime forfettario con AI',
+    description: 'Gratis per ogni utente autenticato.',
     category: 'Fiscale',
     badge: 'Free',
-    features: [
-      'Calcolo imposta sostitutiva 15% (o 5% startup) e contributi INPS',
-      'Soglie ricavi 2025 e coefficienti per codice ATECO',
-      'Netto stimato e confronto con regime ordinario',
-      'Casse professionali (es. INARCASSA, ENPAM) gestite',
-      'Completamente gratuito per ogni utente registrato',
-    ],
+    features: [],
     accent_color: '#f59e0b',
     bg_color: '#FFFFFF',
     bg_gradient: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
@@ -490,42 +530,69 @@ const STATIC_APPS: AppRecord[] = [
 ];
 
 export function normalizeApp(app: AppRecord): AppRecord {
+  const staticDefaults = STATIC_APPS.find((entry) => entry.id === app.id);
+  const mergedApp: AppRecord = staticDefaults
+    ? {
+        ...staticDefaults,
+        ...app,
+        tagline: app.tagline ?? staticDefaults.tagline,
+        description: app.description ?? staticDefaults.description,
+        category: app.category ?? staticDefaults.category,
+        badge: app.badge ?? staticDefaults.badge,
+        features: app.features?.length ? app.features : staticDefaults.features,
+        accent_color: app.accent_color ?? staticDefaults.accent_color,
+        bg_color: app.bg_color ?? staticDefaults.bg_color,
+        bg_gradient: app.bg_gradient ?? staticDefaults.bg_gradient,
+        pricing_badge: app.pricing_badge ?? staticDefaults.pricing_badge,
+        pricing_model: app.pricing_model ?? staticDefaults.pricing_model,
+        price_label: app.price_label ?? staticDefaults.price_label,
+        cta_text: app.cta_text ?? staticDefaults.cta_text,
+        cta_href: app.cta_href ?? staticDefaults.cta_href,
+        internal_route: app.internal_route ?? staticDefaults.internal_route,
+        video_src: app.video_src ?? staticDefaults.video_src,
+        poster_src: app.poster_src ?? staticDefaults.poster_src,
+        landing_content: app.landing_content ?? staticDefaults.landing_content ?? null,
+        plans: app.plans ?? staticDefaults.plans ?? null,
+        admin_url: app.admin_url ?? staticDefaults.admin_url ?? null,
+      }
+    : app;
+
   // Merge static plan config when not already set (Supabase doesn't store plans/admin_url)
-  const config = APP_PLAN_CONFIG[app.id];
+  const config = APP_PLAN_CONFIG[mergedApp.id];
   const enriched: Partial<AppRecord> = config
     ? {
-        plans: app.plans ?? config.plans ?? null,
-        admin_url: app.admin_url ?? config.admin_url ?? null,
+        plans: mergedApp.plans ?? config.plans ?? null,
+        admin_url: mergedApp.admin_url ?? config.admin_url ?? null,
       }
     : {};
 
-  if (app.is_internal) {
-    const expectedWorkspaceRoute = getAppWorkspaceRoute(app.id);
+  if (mergedApp.is_internal) {
+    const expectedWorkspaceRoute = getAppWorkspaceRoute(mergedApp.id);
 
-    if (!app.internal_route || app.internal_route.startsWith('/apps/')) {
+    if (!mergedApp.internal_route || mergedApp.internal_route.startsWith('/apps/')) {
       return {
-        ...app,
+        ...mergedApp,
         ...enriched,
         internal_route: expectedWorkspaceRoute,
       };
     }
 
     return {
-      ...app,
+      ...mergedApp,
       ...enriched,
-      internal_route: app.internal_route,
+      internal_route: mergedApp.internal_route,
     };
   }
 
-  if (!app.is_internal && app.internal_route) {
+  if (!mergedApp.is_internal && mergedApp.internal_route) {
     return {
-      ...app,
+      ...mergedApp,
       ...enriched,
       internal_route: null,
     };
   }
 
-  return { ...app, ...enriched };
+  return { ...mergedApp, ...enriched };
 }
 
 export async function getPublicApps() {
@@ -550,3 +617,4 @@ export async function getPublicAppById(id: string) {
   const apps = await getPublicApps();
   return apps.find((app) => app.id === id) ?? null;
 }
+

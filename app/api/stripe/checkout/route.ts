@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Servizi billing non disponibili.' }, { status: 503 });
   }
 
-  const { data: plan, error } = await supabase
+  const { data: exactPlan, error } = await supabase
     .from('app_billing_plans')
     .select('app_id, plan_code, billing_type, stripe_price_id, grant_plan, trial_days')
     .eq('app_id', appId)
@@ -42,7 +42,33 @@ export async function POST(request: Request) {
     .eq('is_active', true)
     .maybeSingle();
 
-  if (error || !plan?.stripe_price_id) {
+  if (error) {
+    return NextResponse.json(
+      { error: 'Piano Stripe non trovato per questa app.' },
+      { status: 404 },
+    );
+  }
+
+  let plan = exactPlan;
+
+  if (!plan?.stripe_price_id && appId === 'trading' && planCode === 'base') {
+    const { data: legacyPlans, error: legacyError } = await supabase
+      .from('app_billing_plans')
+      .select('app_id, plan_code, billing_type, stripe_price_id, grant_plan, trial_days')
+      .eq('app_id', appId)
+      .eq('is_active', true)
+      .in('plan_code', ['base', 'default', 'one_time']);
+
+    if (!legacyError && legacyPlans?.length) {
+      const preferredCodes = ['base', 'default', 'one_time'];
+      plan =
+        preferredCodes
+          .map((code) => legacyPlans.find((candidate) => candidate.plan_code === code && candidate.stripe_price_id))
+          .find(Boolean) ?? null;
+    }
+  }
+
+  if (!plan?.stripe_price_id) {
     return NextResponse.json(
       { error: 'Piano Stripe non trovato per questa app.' },
       { status: 404 },

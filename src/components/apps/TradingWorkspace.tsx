@@ -1,26 +1,93 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
-import { getAllowedYears } from '@/src/apps/trading/plans'
+import { getAllowedYears, normalizeTradingPlan } from '@/src/apps/trading/plans'
 import { UploadClient } from '@/src/components/apps/trading/UploadClient'
 import { ReportsTable } from '@/src/components/apps/trading/ReportsTable'
 import { TaxFormClient } from '@/src/components/apps/trading/TaxFormClient'
 import { useAdminStatus } from '@/src/hooks/useAdminStatus'
 import type { Plan } from '@/src/apps/trading/types'
+import { createClerkSupabaseBrowserClient, publicSupabase } from '@/src/lib/supabase/public'
 
 type Tab = 'upload' | 'reports' | 'tax-form'
 
 export default function TradingWorkspace() {
-  const { userId } = useAuth()
+  const { getToken, userId } = useAuth()
   const { isAdmin } = useAdminStatus()
   const [activeTab, setActiveTab] = useState<Tab>('upload')
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | undefined>(undefined)
+  const [plan, setPlan] = useState<Plan | null>(isAdmin ? 'pro' : null)
+  const [planLoaded, setPlanLoaded] = useState(isAdmin)
 
-  // For admin, default to 'pro' plan. For regular users, we'll use 'base' as default
-  // (the actual plan enforcement happens server-side in the API routes)
-  const plan: Plan = isAdmin ? 'pro' : 'base'
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPlan = async () => {
+      if (isAdmin) {
+        if (!cancelled) {
+          setPlan('pro')
+          setPlanLoaded(true)
+        }
+        return
+      }
+
+      if (!userId) {
+        if (!cancelled) {
+          setPlan(null)
+          setPlanLoaded(false)
+        }
+        return
+      }
+
+      const client = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase
+      if (!client) {
+        if (!cancelled) {
+          setPlan(null)
+          setPlanLoaded(true)
+        }
+        return
+      }
+
+      const { data } = await client
+        .from('user_apps')
+        .select('plan')
+        .eq('user_id', userId)
+        .eq('app_id', 'trading')
+        .maybeSingle()
+
+      if (!cancelled) {
+        setPlan(normalizeTradingPlan(data?.plan))
+        setPlanLoaded(true)
+      }
+    }
+
+    void loadPlan()
+
+    return () => {
+      cancelled = true
+    }
+  }, [getToken, isAdmin, userId])
+
+  if (!planLoaded) {
+    return (
+      <div style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>Caricamento piano attivo...</p>
+      </div>
+    )
+  }
+
+  if (!plan) {
+    return (
+      <div style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <p style={{ margin: 0, color: '#64748b', fontSize: 14 }}>
+          Nessun piano Trading attivo. Torna alla dashboard per attivare Base, Standard o Pro.
+        </p>
+      </div>
+    )
+  }
+
   const allowedYears = getAllowedYears(plan)
 
   const handleReportReady = useCallback((reportId: string) => {
@@ -49,7 +116,7 @@ export default function TradingWorkspace() {
     <div style={{ display: 'grid', gap: 20 }}>
       {/* Header */}
       <section style={{ padding: 28, borderRadius: 24, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
-        <p style={{ margin: '0 0 8px', color: accent, fontWeight: 700, textTransform: 'uppercase', fontSize: 12, letterSpacing: '0.06em' }}>Trading Fiscale</p>
+        <p style={{ margin: '0 0 8px', color: accent, fontWeight: 700, textTransform: 'uppercase', fontSize: 12, letterSpacing: '0.06em' }}>Dichiarazione Trading</p>
         <h1 style={{ margin: '0 0 10px', fontSize: 34, fontFamily: 'var(--font-display)' }}>Report fiscale automatico</h1>
         <p style={{ margin: 0, color: '#6E6E73', lineHeight: 1.6 }}>
           Carica il report HTML MetaTrader 4/5 del tuo broker, analizza plusvalenze e minusvalenze, genera PDF fiscale e facsimile RW/RT.
@@ -122,3 +189,4 @@ export default function TradingWorkspace() {
     </div>
   )
 }
+

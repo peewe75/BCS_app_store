@@ -53,6 +53,18 @@ export const PLAN_DETAILS: Record<
   },
 }
 
+export function normalizeTradingPlan(plan: string | null | undefined): Plan | null {
+  if (plan === 'base' || plan === 'standard' || plan === 'pro') {
+    return plan
+  }
+
+  if (plan === 'default' || plan === 'one_time') {
+    return 'base'
+  }
+
+  return null
+}
+
 export function getAllowedYears(plan: Plan | null, currentYear = new Date().getFullYear()) {
   const floorYear = currentYear - 8
 

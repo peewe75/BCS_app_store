@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { isYearAllowedForPlan, PLAN_DETAILS } from '@/src/apps/trading/plans'
+import { isYearAllowedForPlan, normalizeTradingPlan, PLAN_DETAILS } from '@/src/apps/trading/plans'
 import { buildUploadBlobKey, buildBlobKey, saveTextBlob, saveBlob } from '@/src/apps/trading/storage'
 import {
   getReportYears,
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const clerkUser = await currentUser()
   const taxProfile = extractTaxProfileFromClerkUser(clerkUser)
   const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase)
-  const plan = (grant?.plan as Plan) ?? (isAdmin ? 'pro' : null)
+  const plan = normalizeTradingPlan(grant?.plan) ?? (isAdmin ? 'pro' : null)
 
   if (!plan) {
     return NextResponse.json(

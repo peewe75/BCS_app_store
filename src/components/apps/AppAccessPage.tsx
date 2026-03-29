@@ -22,6 +22,14 @@ function isFreeApp(app: AppRecord) {
   return app.pricing_model === 'free' || app.id === 'forf';
 }
 
+function normalizeBillingPlanCode(appId: string, planCode: string) {
+  if (appId === 'trading' && (planCode === 'default' || planCode === 'one_time')) {
+    return 'base';
+  }
+
+  return planCode;
+}
+
 export default function AppAccessPage({ slug }: { slug: string }) {
   const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
@@ -41,6 +49,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
   const [claimFreeLoading, setClaimFreeLoading] = useState(false);
   const [claimFreeError, setClaimFreeError] = useState<string | null>(null);
   const [claimFreeSuccess, setClaimFreeSuccess] = useState(false);
+  const [billingPlanCodes, setBillingPlanCodes] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +67,25 @@ export default function AppAccessPage({ slug }: { slug: string }) {
       }
 
       setApp(appRow);
+
+      const publicClient = createClerkSupabaseBrowserClient(getToken) ?? publicSupabase;
+      if (publicClient) {
+        const { data: billingRows } = await publicClient
+          .from('app_billing_plans')
+          .select('plan_code, stripe_price_id')
+          .eq('app_id', slug)
+          .eq('is_active', true);
+
+        if (!cancelled) {
+          setBillingPlanCodes(
+            ((billingRows as Array<{ plan_code: string; stripe_price_id?: string | null }> | null) ?? [])
+              .filter((row) => Boolean(row.stripe_price_id))
+              .map((row) => normalizeBillingPlanCode(slug, row.plan_code)),
+          );
+        }
+      } else if (!cancelled) {
+        setBillingPlanCodes([]);
+      }
 
       if (!isSignedIn || !user?.id) {
         setGrant(null);
@@ -140,10 +168,14 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     }
   };
 
-  const handleCheckout = async (planCode = 'default') => {
+  const handleCheckout = async (planCode?: string) => {
     if (!app || checkoutLoading) {
       return;
     }
+
+    const defaultPlanCode =
+      APP_PLAN_CONFIG[app.id]?.plans?.find((plan) => plan.code !== 'free')?.code ?? 'default';
+    const resolvedPlanCode = planCode ?? defaultPlanCode;
 
     setCheckoutLoading(true);
     setCheckoutError(null);
@@ -154,7 +186,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
       },
       body: JSON.stringify({
         appId: app.id,
-        planCode,
+        planCode: resolvedPlanCode,
       }),
     });
     const rawText = await response.text();
@@ -231,6 +263,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     const hasPaidPlan = appConfig?.plans?.some((p) => p.code !== 'free') ?? false;
     const planCfgForTrial = appConfig?.plans?.find((p) => p.code !== 'free');
     const trialDays = planCfgForTrial?.trial_days;
+    const paidPlans = appConfig?.plans?.filter((p) => p.code !== 'free') ?? [];
     return (
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '120px 24px' }}>
         <div style={{ padding: 32, borderRadius: 28, background: '#fff', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -249,7 +282,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
           <h1 style={{ marginTop: 0, fontSize: 28, letterSpacing: '-0.02em' }}>Accesso non attivo</h1>
           <p style={{ color: '#6E6E73', lineHeight: 1.7, maxWidth: 480 }}>
             {hasPaidPlan
-              ? 'Questo strumento richiede un abbonamento attivo. Acquista direttamente o contatta l\'amministratore.'
+              ? 'Questo strumento richiede un piano attivo. Puoi sbloccare l accesso direttamente dal checkout oppure tornare in dashboard.'
               : 'Questo strumento richiede un accesso attivo. Contatta l\'amministratore per riceverlo.'}
           </p>
           {!hasPaidPlan && (
@@ -333,34 +366,107 @@ export default function AppAccessPage({ slug }: { slug: string }) {
           ) : (
             /* Tutti gli altri app: pulsante abbonamento standard */
             <>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-                {hasPaidPlan && (
-                  <button
-                    type="button"
-                    onClick={() => void handleCheckout()}
-                    disabled={checkoutLoading}
-                    style={{
-                      border: 'none', borderRadius: 999, background: accentColor,
-                      color: '#fff', padding: '12px 20px', fontWeight: 700, fontSize: 14,
-                      cursor: checkoutLoading ? 'default' : 'pointer',
-                      opacity: checkoutLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {checkoutLoading
-                      ? 'Apro Stripe…'
-                      : trialDays
-                        ? `${trialDays} giorni gratis, poi ${app.price_label ?? 'Abbonati'}`
-                        : `Abbonati — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
-                  </button>
-                )}
-                <Link href="/dashboard" style={{
-                  padding: '12px 20px', borderRadius: 999,
-                  border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none',
-                  color: '#1D1D1F', fontWeight: 700, fontSize: 14,
-                }}>
-                  Torna alla dashboard
-                </Link>
-              </div>
+              {paidPlans.length > 1 ? (
+                <div style={{ display: 'grid', gap: 14, marginTop: 24 }}>
+                  {paidPlans.map((plan) => {
+                    const checkoutEnabled = billingPlanCodes.includes(plan.code);
+
+                    return (
+                      <div
+                        key={plan.code}
+                        style={{
+                          padding: 18,
+                          borderRadius: 18,
+                          border: '1px solid rgba(0,0,0,0.08)',
+                          background: checkoutEnabled ? '#fff' : '#F8FAFC',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 16,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ display: 'grid', gap: 4 }}>
+                          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111827' }}>{plan.label}</p>
+                          {plan.description ? (
+                            <p style={{ margin: 0, color: '#6E6E73', fontSize: 13, lineHeight: 1.6 }}>{plan.description}</p>
+                          ) : null}
+                        </div>
+
+                        {checkoutEnabled ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleCheckout(plan.code)}
+                            disabled={checkoutLoading}
+                            style={{
+                              border: 'none',
+                              borderRadius: 999,
+                              background: accentColor,
+                              color: '#fff',
+                              padding: '12px 20px',
+                              fontWeight: 700,
+                              fontSize: 14,
+                              cursor: checkoutLoading ? 'default' : 'pointer',
+                              opacity: checkoutLoading ? 0.7 : 1,
+                            }}
+                          >
+                            {checkoutLoading ? 'Apro Stripe…' : `Attiva ${plan.label}`}
+                          </button>
+                        ) : (
+                          <span
+                            style={{
+                              padding: '10px 16px',
+                              borderRadius: 999,
+                              background: 'rgba(15,23,42,0.06)',
+                              color: '#475569',
+                              fontWeight: 700,
+                              fontSize: 12,
+                            }}
+                          >
+                            Configurazione in corso
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <Link href="/dashboard" style={{
+                    padding: '12px 20px', borderRadius: 999, justifySelf: 'flex-start',
+                    border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none',
+                    color: '#1D1D1F', fontWeight: 700, fontSize: 14,
+                  }}>
+                    Torna alla dashboard
+                  </Link>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+                  {hasPaidPlan && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCheckout()}
+                      disabled={checkoutLoading}
+                      style={{
+                        border: 'none', borderRadius: 999, background: accentColor,
+                        color: '#fff', padding: '12px 20px', fontWeight: 700, fontSize: 14,
+                        cursor: checkoutLoading ? 'default' : 'pointer',
+                        opacity: checkoutLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {checkoutLoading
+                        ? 'Apro Stripe…'
+                        : trialDays
+                          ? `${trialDays} giorni gratis, poi ${app.price_label ?? 'Attiva il piano'}`
+                          : `Attiva il piano — ${app.price_label ?? app.pricing_badge ?? 'Acquista'}`}
+                    </button>
+                  )}
+                  <Link href="/dashboard" style={{
+                    padding: '12px 20px', borderRadius: 999,
+                    border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none',
+                    color: '#1D1D1F', fontWeight: 700, fontSize: 14,
+                  }}>
+                    Torna alla dashboard
+                  </Link>
+                </div>
+              )}
               {checkoutError ? (
                 <p style={{ margin: '16px 0 0', color: '#b42318', fontWeight: 600 }}>{checkoutError}</p>
               ) : null}
