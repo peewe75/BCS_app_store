@@ -1,8 +1,15 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Logo from '@/src/components/Logo';
+import { getContextualSignOutUrl } from '@/src/lib/app-routes';
 
 export function SiteHeader() {
+  const pathname = usePathname();
+  const signOutUrl = getContextualSignOutUrl(pathname);
+
   return (
     <header
       style={{
@@ -76,7 +83,7 @@ export function SiteHeader() {
               Dashboard
             </Link>
             <UserButton
-              afterSignOutUrl="/"
+              afterSignOutUrl={signOutUrl}
               appearance={{
                 elements: {
                   avatarBox: { width: 36, height: 36 },
