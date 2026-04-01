@@ -11,15 +11,17 @@ import ForfApp from '@/src/features/ForfApp';
 import RavvedimentoApp from '@/src/features/RavvedimentoApp';
 import TradingWorkspace from '@/src/components/apps/TradingWorkspace';
 import UgcWorkspace from '@/src/components/apps/UgcWorkspace';
+import CryptoFiscaleApp from '@/src/components/apps/crypto-fiscale/CryptoFiscaleApp';
 const INTERNAL_COMPONENTS: Record<string, React.ComponentType> = {
   forf: ForfApp,
   ravvedimento: RavvedimentoApp,
   trading: TradingWorkspace,
   ugc: UgcWorkspace,
+  'crypto-fiscale': CryptoFiscaleApp,
 };
 
 function isFreeApp(app: AppRecord) {
-  return app.pricing_model === 'free' || app.id === 'forf';
+  return app.pricing_model === 'free' || app.id === 'forf' || app.id === 'crypto-fiscale';
 }
 
 function normalizeBillingPlanCode(appId: string, planCode: string) {
