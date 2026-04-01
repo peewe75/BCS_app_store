@@ -618,13 +618,19 @@ export function normalizeApp(app: AppRecord): AppRecord {
       }
     : {};
 
-  if (mergedApp.is_internal) {
+  // Force internal app routes for known internal slugs regardless of DB value
+  const INTERNAL_APP_SLUGS = new Set(['ugc', 'trading', 'ravvedimento', 'forf', 'crypto-fiscale']);
+  const forceInternal = INTERNAL_APP_SLUGS.has(mergedApp.id);
+  const effectiveIsInternal = forceInternal || mergedApp.is_internal;
+
+  if (effectiveIsInternal) {
     const expectedWorkspaceRoute = getAppWorkspaceRoute(mergedApp.id);
 
     if (!mergedApp.internal_route || mergedApp.internal_route.startsWith('/apps/')) {
       return {
         ...mergedApp,
         ...enriched,
+        is_internal: true,
         internal_route: expectedWorkspaceRoute,
       };
     }
@@ -632,6 +638,7 @@ export function normalizeApp(app: AppRecord): AppRecord {
     return {
       ...mergedApp,
       ...enriched,
+      is_internal: true,
       internal_route: mergedApp.internal_route,
     };
   }
