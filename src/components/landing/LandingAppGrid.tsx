@@ -13,7 +13,9 @@ const APP_IMAGES: Record<string, string> = {
   ravvedimento: '/images/4.png',
   forf: '/images/ForfApp.png',
   softi: '/images/Softi.png',
-  'legal-ai-penale': '/images/1.png',
+  'legal-ai-penale': '/images/App_Penale.png',
+  consenso: '/images/Consenso.png',
+  'crypto-fiscale': '/images/Trading Crypto.png',
 };
 
 const CTA_COPY: Record<string, string> = {
@@ -201,7 +203,7 @@ export default function LandingAppGrid({ apps }: LandingAppGridProps) {
               const accentColor = app.accent_color ?? '#3713ec';
               const ctaText = CTA_COPY[app.id] ?? `Scopri ${app.name}`;
               const href = getAppPublicRoute(app);
-              const imageSrc = APP_IMAGES[app.id];
+              const imageSrc = APP_IMAGES[app.id] ?? app.poster_src ?? undefined;
 
               return (
                 <motion.div
