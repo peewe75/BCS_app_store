@@ -4,6 +4,9 @@ import AppLandingPage from '@/src/components/apps/AppLandingPage';
 import { getPublicAppById, getPublicApps } from '@/src/lib/catalog';
 import { JsonLd, appLd } from '@/src/components/JsonLd';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const APP_META: Record<string, { title: string; description: string }> = {
   ugc: {
     title: 'UGC Ad Creator — Genera Video Pubblicitari AI in 60 Secondi',
@@ -16,7 +19,7 @@ const APP_META: Record<string, { title: string; description: string }> = {
       "Gestisci le procedure di crisi d'impresa secondo il Codice della Crisi (CCII) con AI: fascicolo digitale, knowledge base giuridica e generazione atti. 14 giorni gratis.",
   },
   trading: {
-    title: 'Trading Fiscale — Report Fiscale AI per Trader Italiani',
+    title: 'Dichiarazione Trading — Report Fiscale AI per Trader Italiani',
     description:
       'Carica i dati del tuo broker e ottieni un report fiscale professionale per la dichiarazione dei redditi. Calcolo P&L automatico. Da €9,90.',
   },
@@ -24,6 +27,11 @@ const APP_META: Record<string, { title: string; description: string }> = {
     title: 'RavvedimentoFacile — Calcolo Sanzioni Ravvedimento Operoso 2025',
     description:
       'Calcola sanzione, interessi e importo totale da versare per il ravvedimento operoso. Normativa 2025 aggiornata, risultato in pochi secondi. Gratuito.',
+  },
+  'crypto-fiscale': {
+    title: 'Crypto Fiscale — Dichiarazione Crypto Automatica per Trader Italiani',
+    description:
+      'Carica i report HTML dei tuoi exchange (Binance, Bybit) e ottieni i quadri RW/RT compilati con calcolo LIFO. Normativa 2025/2026.',
   },
   forf: {
     title: 'Forfettari AI — Calcola le Tasse Regime Forfettario Gratis',
@@ -84,3 +92,4 @@ export default async function AppPage({
     </>
   );
 }
+
