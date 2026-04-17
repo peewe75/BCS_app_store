@@ -156,6 +156,23 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
     ],
     admin_url: 'https://ai-crisi.vercel.app/admin',
   },
+  'legal-ai-penale': {
+    plans: [
+      {
+        code: 'free',
+        label: 'Free',
+        description: 'Landing e dashboard base',
+        features: ['Landing pubblica gratuita', 'Clerk B condiviso', 'DB unico BCS'],
+      },
+      {
+        code: 'monthly',
+        label: 'Mensile',
+        description: 'Checkout centralizzato pronto per il futuro',
+        features: ['Stripe solo in BCS admin', 'Entitlement centralizzati', 'Piano paid predisposto'],
+      },
+    ],
+    admin_url: 'https://ultrabot.space/admin',
+  },
 };
 
 export interface AppLandingSection {
@@ -340,6 +357,99 @@ const STATIC_APPS: AppRecord[] = [
       closingBody:
         'AI Crisi trasforma documenti, fonti e bozze in un processo piu ordinato, piu veloce e piu controllabile.',
       finalCtaLabel: 'Attiva la prova gratuita',
+    },
+  },
+  {
+    id: 'legal-ai-penale',
+    name: 'Legal AI Penale',
+    tagline: 'Fascicolo penale digitale con AI e database unico BCS',
+    description:
+      'Landing free, login con Clerk B e pipeline audio centralizzata su Supabase BCS per casi, segmenti, timeline ed eventi.',
+    category: 'Legal AI',
+    badge: 'Penale',
+    features: [],
+    accent_color: '#f59e0b',
+    bg_color: '#0F172A',
+    bg_gradient: 'linear-gradient(135deg, #0f172a 0%, #111827 100%)',
+    pricing_badge: 'Free oggi â€” billing BCS centralizzato',
+    pricing_model: 'free',
+    price_label: 'Free oggi â€” billing BCS centralizzato',
+    cta_text: 'Apri Legal AI Penale',
+    cta_href: 'https://legal-ai-penale.netlify.app',
+    is_internal: false,
+    internal_route: null,
+    video_src: null,
+    poster_src: null,
+    layout: 'text-left',
+    sort_order: 3,
+    is_active: true,
+    is_coming_soon: false,
+    created_at: null,
+    landing_content: {
+      eyebrow: 'App penale dentro il sistema BCS',
+      headline: 'Fascicolo penale digitale, landing free e billing centralizzato in BCS.',
+      subheadline:
+        'Legal AI Penale resta su Netlify, ma autentica con il progetto Clerk gia usato da ultrabot.space e salva i dati nel DB unico BCS.',
+      trustLine:
+        'Clerk B per login e registrazione, Supabase BCS per fascicoli e trascrizioni, Stripe solo in BCS admin quando il piano diverra paid.',
+      primaryCtaLabel: 'Apri la dashboard',
+      secondaryCtaLabel: 'Vai a BCS admin',
+      problemTitle: 'Non serve un sistema separato per ogni app.',
+      problemBody:
+        'La landing resta semplice e gratuita, mentre il lavoro serio vive nello stack condiviso di BCS: stessi utenti, stessi profili, stessi entitlement e stesso billing.',
+      sections: [
+        {
+          id: 'landing',
+          title: 'Landing free e accesso chiaro',
+          body:
+            'Il sito pubblico introduce il prodotto, mostra il valore per il professionista e porta al login o alla dashboard senza una seconda piattaforma di identita.',
+          bullets: [
+            'Hero dedicato alla pratica penale.',
+            'CTA verso registrazione e accesso dashboard.',
+            'Piano iniziale gratuito con passaggio futuro al paid gia predisposto.',
+          ],
+        },
+        {
+          id: 'workflow',
+          title: 'Pipeline unica per audio e trascrizioni',
+          body:
+            'Caricamento audio, Deepgram, estrazione eventi e memoria del fascicolo finiscono tutti nel backend BCS cosi la dashboard amministrativa vede gli stessi dati.',
+          bullets: [
+            'Upload audio su storage BCS.',
+            'Trascrizioni e timeline salvate nello stesso database.',
+            'Chat legale collegata ai segmenti del caso.',
+          ],
+        },
+        {
+          id: 'billing',
+          title: 'Billing e entitlement gestiti da BCS admin',
+          body:
+            'Il frontend non contiene Stripe separato. Quando il piano diverra paid, il checkout restera nel flusso BCS con prodotti, portal e webhook centralizzati.',
+          bullets: [
+            'Stripe unico in ultrabot.space.',
+            'Entitlement letti da BCS admin.',
+            'Migrazione da free a paid senza rifare auth o landing.',
+          ],
+        },
+      ],
+      benefitsTitle: 'Perche dentro BCS',
+      benefits: [
+        'Un solo account Clerk per la suite.',
+        'Un solo database per dashboard e app.',
+        'Un solo flusso Stripe gestito da BCS admin.',
+        'Un solo posto dove governare accessi e piani.',
+      ],
+      audienceTitle: 'Per chi e pensata',
+      audienceBody:
+        'Per avvocati penalisti e studi che vogliono un fascicolo digitale ordinato, ma anche una base pronta per il passaggio a piani premium centralizzati.',
+      pricingTitle: 'Piano iniziale',
+      pricingLine: 'Free oggi, con strada gia pronta per il checkout centralizzato BCS.',
+      supportLine:
+        'Quando il piano salira a paid, il cambio avverra dal billing BCS senza cambiare landing, auth o storage.',
+      closingHeadline: 'Stessa identita, stesso database, stesso billing.',
+      closingBody:
+        'Legal AI Penale entra nella suite senza diventare un isola: resta un prodotto dedicato, ma con controllo centralizzato in BCS.',
+      finalCtaLabel: 'Apri la dashboard',
     },
   },
   {

@@ -13,6 +13,7 @@ const APP_IMAGES: Record<string, string> = {
   ravvedimento: '/images/4.png',
   forf: '/images/ForfApp.png',
   softi: '/images/Softi.png',
+  'legal-ai-penale': '/images/1.png',
 };
 
 const CTA_COPY: Record<string, string> = {
@@ -21,6 +22,7 @@ const CTA_COPY: Record<string, string> = {
   trading: 'Genera il tuo report',
   ravvedimento: 'Calcola adesso',
   forf: 'Calcola le tue tasse',
+  'legal-ai-penale': 'Apri Legal AI Penale',
 };
 
 // Mappa audience per tab filter
@@ -31,6 +33,7 @@ const AUDIENCE_MAP: Record<string, string[]> = {
   trading:       ['trader'],
   forf:          ['creator'],
   ugc:           ['creator'],
+  'legal-ai-penale': ['professionisti'],
 };
 
 const TABS = [
