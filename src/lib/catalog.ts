@@ -5,7 +5,7 @@ export interface PlanTier {
   code: string;
   label: string;
   description?: string;
-  /** Default feature list — can be overridden by admin via app_billing_plans.features in DB */
+  /** Default feature list â€” can be overridden by admin via app_billing_plans.features in DB */
   features?: string[];
   trial_days?: number;
 }
@@ -36,7 +36,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
       {
         code: 'monthly',
-        label: 'Mensile — €29/mese',
+        label: 'Mensile â€” â‚¬29/mese',
         description: 'Accesso completo',
         features: [
           'Asset illimitati',
@@ -45,7 +45,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
           'Segnali MT5 live',
           'Tutti i feed di mercato (Alpha Vantage, Finnhub, Marketaux)',
           'Analisi multi-timeframe',
-          'Accesso prioritario alle nuove funzionalità',
+          'Accesso prioritario alle nuove funzionalitÃ ',
         ],
       },
     ],
@@ -92,7 +92,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
       {
         code: 'monthly',
-        label: 'Mensile — €19/mese',
+        label: 'Mensile â€” â‚¬19/mese',
         description: 'Accesso completo',
         features: ['Calcoli illimitati', 'Tutte le imposte', 'Storico completo', 'Esportazione PDF/Excel'],
       },
@@ -111,7 +111,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
       },
       {
         code: 'credits',
-        label: '1000 Crediti — €9,60',
+        label: '1000 Crediti â€” â‚¬9,60',
         description: 'Pacchetto crediti ricaricabile',
         features: ['1000 crediti', '~13 video UGC completi', '~40 immagini lifestyle', 'Crediti cumulabili', 'Nessuna scadenza'],
       },
@@ -150,7 +150,7 @@ export const APP_PLAN_CONFIG: Record<string, { plans?: PlanTier[]; admin_url?: s
     plans: [
       {
         code: 'monthly',
-        label: 'Mensile — €30/mese',
+        label: 'Mensile â€” â‚¬30/mese',
         features: ['Fascicoli illimitati', 'Knowledge base CCII', 'Generazione atti AI', 'Area admin studio'],
       },
     ],
@@ -371,15 +371,15 @@ const STATIC_APPS: AppRecord[] = [
     accent_color: '#f59e0b',
     bg_color: '#0F172A',
     bg_gradient: 'linear-gradient(135deg, #0f172a 0%, #111827 100%)',
-    pricing_badge: 'Free oggi â€” billing BCS centralizzato',
+    pricing_badge: 'Free oggi - billing BCS centralizzato',
     pricing_model: 'free',
-    price_label: 'Free oggi â€” billing BCS centralizzato',
+    price_label: 'Free oggi - billing BCS centralizzato',
     cta_text: 'Apri Legal AI Penale',
-    cta_href: 'https://legal-ai-penale.netlify.app',
+    cta_href: 'https://legal-ai-penale.netlify.app/dashboard',
     is_internal: false,
     internal_route: null,
     video_src: null,
-    poster_src: null,
+    poster_src: '/images/1.png',
     layout: 'text-left',
     sort_order: 3,
     is_active: true,
@@ -387,25 +387,25 @@ const STATIC_APPS: AppRecord[] = [
     created_at: null,
     landing_content: {
       eyebrow: 'App penale dentro il sistema BCS',
-      headline: 'Fascicolo penale digitale, landing free e billing centralizzato in BCS.',
+      headline: 'Fascicolo penale digitale, landing free e dashboard pronta all uso.',
       subheadline:
         'Legal AI Penale resta su Netlify, ma autentica con il progetto Clerk gia usato da ultrabot.space e salva i dati nel DB unico BCS.',
       trustLine:
-        'Clerk B per login e registrazione, Supabase BCS per fascicoli e trascrizioni, Stripe solo in BCS admin quando il piano diverra paid.',
-      primaryCtaLabel: 'Apri la dashboard',
+        'Clerk B per login e registrazione, Supabase BCS per fascicoli e trascrizioni, Stripe centralizzato solo in BCS admin quando il piano diverra paid.',
+      primaryCtaLabel: 'Apri dashboard utente',
       secondaryCtaLabel: 'Vai a BCS admin',
-      problemTitle: 'Non serve un sistema separato per ogni app.',
+      problemTitle: 'Un solo stack, zero doppioni.',
       problemBody:
         'La landing resta semplice e gratuita, mentre il lavoro serio vive nello stack condiviso di BCS: stessi utenti, stessi profili, stessi entitlement e stesso billing.',
       sections: [
         {
           id: 'landing',
-          title: 'Landing free e accesso chiaro',
+          title: 'Landing free e accesso immediato',
           body:
             'Il sito pubblico introduce il prodotto, mostra il valore per il professionista e porta al login o alla dashboard senza una seconda piattaforma di identita.',
           bullets: [
-            'Hero dedicato alla pratica penale.',
-            'CTA verso registrazione e accesso dashboard.',
+            'Hero dedicato alla pratica penale e ai fascicoli audio.',
+            'CTA verso registrazione, dashboard e percorso utenti.',
             'Piano iniziale gratuito con passaggio futuro al paid gia predisposto.',
           ],
         },
@@ -445,11 +445,11 @@ const STATIC_APPS: AppRecord[] = [
       pricingTitle: 'Piano iniziale',
       pricingLine: 'Free oggi, con strada gia pronta per il checkout centralizzato BCS.',
       supportLine:
-        'Quando il piano salira a paid, il cambio avverra dal billing BCS senza cambiare landing, auth o storage.',
+        'L accesso alla dashboard utenti resta sul sito legal-ai-penale.netlify.app, mentre il controllo amministrativo rimane su ultrabot.space.',
       closingHeadline: 'Stessa identita, stesso database, stesso billing.',
       closingBody:
         'Legal AI Penale entra nella suite senza diventare un isola: resta un prodotto dedicato, ma con controllo centralizzato in BCS.',
-      finalCtaLabel: 'Apri la dashboard',
+      finalCtaLabel: 'Apri dashboard utente',
     },
   },
   {
