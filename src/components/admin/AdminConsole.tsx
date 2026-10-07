@@ -196,7 +196,7 @@ function AdminConsoleContent() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const response = await fetch('/api/admin/overview', { cache: 'no-store' });
+      const response = await fetch('/tools/api/admin/overview', { cache: 'no-store' });
       const payload = (await response.json()) as OverviewPayload;
       if (cancelled) return;
       if (!response.ok) {
@@ -215,7 +215,7 @@ function AdminConsoleContent() {
   const loadApps = useCallback(async () => {
     setAppsLoading(true);
     try {
-      const res = await fetch('/api/admin/apps', { cache: 'no-store' });
+      const res = await fetch('/tools/api/admin/apps', { cache: 'no-store' });
       const json = await res.json();
       if (res.ok && json.apps) setApps(json.apps);
     } catch { /* silent */ } finally {
@@ -227,7 +227,7 @@ function AdminConsoleContent() {
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const res = await fetch('/api/admin/users', { cache: 'no-store' });
+      const res = await fetch('/tools/api/admin/users', { cache: 'no-store' });
       const json = await res.json();
       if (res.ok && json.users) setUsersData(json.users);
     } catch { /* silent */ } finally {
@@ -239,7 +239,7 @@ function AdminConsoleContent() {
   const loadPayments = useCallback(async () => {
     setPaymentsLoading(true);
     try {
-      const res = await fetch('/api/admin/payments', { cache: 'no-store' });
+      const res = await fetch('/tools/api/admin/payments', { cache: 'no-store' });
       const json = await res.json();
       if (res.ok && json.payments) setPaymentsData(json.payments);
     } catch { /* silent */ } finally {
@@ -251,7 +251,7 @@ function AdminConsoleContent() {
   const loadCodes = useCallback(async () => {
     setCodesLoading(true);
     try {
-      const res = await fetch('/api/admin/access-codes', { cache: 'no-store' });
+      const res = await fetch('/tools/api/admin/access-codes', { cache: 'no-store' });
       const json = await res.json();
       if (res.ok && json.codes) setCodesData(json.codes as AccessCode[]);
     } catch { /* silent */ } finally {
@@ -275,7 +275,7 @@ function AdminConsoleContent() {
     setEditingTrialDays({});
     setNewFeatureInput({});
     try {
-      const res = await fetch(`/api/admin/plan-features?app_id=${app.id}`, { cache: 'no-store' });
+      const res = await fetch(`/tools/api/admin/plan-features?app_id=${app.id}`, { cache: 'no-store' });
       const json = await res.json();
       if (res.ok && json.plans) {
         const rows = json.plans as DbPlanRow[];
@@ -302,7 +302,7 @@ function AdminConsoleContent() {
       const features = editingFeatures[planCode] ?? [];
       const limits = editingLimits[planCode] ?? {};
       const trial_days = editingTrialDays[planCode] ?? 0;
-      const res = await fetch('/api/admin/plan-features', {
+      const res = await fetch('/tools/api/admin/plan-features', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app_id: appId, plan_code: planCode, features, limits, trial_days }),
@@ -328,7 +328,7 @@ function AdminConsoleContent() {
 
   // CRUD handlers
   const handleSave = async (formData: AppFormData, isNew: boolean) => {
-    const url = isNew ? '/api/admin/apps' : `/api/admin/apps/${formData.id}`;
+    const url = isNew ? '/tools/api/admin/apps' : `/tools/api/admin/apps/${formData.id}`;
     const method = isNew ? 'POST' : 'PUT';
     const res = await fetch(url, {
       method,
@@ -342,7 +342,7 @@ function AdminConsoleContent() {
   };
 
   const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/admin/apps/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/tools/api/admin/apps/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const json = await res.json();
       setToastMsg(`Errore: ${json.error}`);
@@ -358,13 +358,13 @@ function AdminConsoleContent() {
     setGrantSaving(appId);
     try {
       if (plan === '') {
-        await fetch('/api/admin/grants', {
+        await fetch('/tools/api/admin/grants', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, app_id: appId }),
         });
       } else {
-        await fetch('/api/admin/grants', {
+        await fetch('/tools/api/admin/grants', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, app_id: appId, plan }),
@@ -692,7 +692,7 @@ function AdminConsoleContent() {
                           style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: '#F5F5F7', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
                           onClick={() => {
                             void (async () => {
-                              const res = await fetch(`/api/user/credits?app_id=ugc`);
+                              const res = await fetch(`/tools/api/user/credits?app_id=ugc`);
                               const json = await res.json();
                               setUgcCredits((json.credits as number | undefined) ?? 0);
                             })();
@@ -715,7 +715,7 @@ function AdminConsoleContent() {
                         onClick={() => {
                           void (async () => {
                             setUgcCreditsSaving(true);
-                            const res = await fetch('/api/admin/credits', {
+                            const res = await fetch('/tools/api/admin/credits', {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ user_id: selectedUser.id, app_id: 'ugc', delta: Number(ugcCreditsInput) }),
@@ -1173,7 +1173,7 @@ function AdminConsoleContent() {
                   if (newCode.code.trim()) body.code = newCode.code.trim();
                   if (newCode.duration_days) body.duration_days = Number(newCode.duration_days);
                   if (newCode.valid_until) body.valid_until = newCode.valid_until;
-                  const res = await fetch('/api/admin/access-codes', {
+                  const res = await fetch('/tools/api/admin/access-codes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
@@ -1232,7 +1232,7 @@ function AdminConsoleContent() {
                         title="Revoca"
                         onClick={() => {
                           void (async () => {
-                            const res = await fetch(`/api/admin/access-codes/${c.code}`, { method: 'DELETE' });
+                            const res = await fetch(`/tools/api/admin/access-codes/${c.code}`, { method: 'DELETE' });
                             if (res.ok) {
                               setToastMsg(`Codice "${c.code}" revocato.`);
                               await loadCodes();

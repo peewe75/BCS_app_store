@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { isServerUserAdmin } from '@/src/lib/auth/admin-server';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { hasSupabaseAdminConfig } from '@/src/lib/env';
+import { hasClerkServerConfig, hasSupabaseAdminConfig } from '@/src/lib/env';
+import { CreditError, reserveCredits, refundCredits } from '@/src/lib/credits';
 import {
   extractSupportedImageBase64,
   InvalidUgcImageError,
@@ -14,44 +15,18 @@ export const maxDuration = 60;
 const IMAGE_COST = 25;
 
 export async function POST(req: Request) {
+  if (!hasClerkServerConfig() || !hasSupabaseAdminConfig()) {
+    return NextResponse.json({ error: 'Servizi della generazione non configurati.' }, { status: 503 });
+  }
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
 
-  // Credit check (skip for admin)
-  if (hasSupabaseAdminConfig()) {
-    const supabase = createSupabaseAdminClient();
-    const clerkUser = await currentUser();
-    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
-
-    if (!isAdmin) {
-      if (supabase) {
-        const { data: creditRow } = await supabase
-          .from('user_credits')
-          .select('credits')
-          .eq('user_id', userId)
-          .eq('app_id', 'ugc')
-          .maybeSingle();
-
-        const currentCredits = (creditRow?.credits as number | null) ?? 0;
-
-        if (currentCredits < IMAGE_COST) {
-          return NextResponse.json(
-            { error: `Crediti insufficienti. L'immagine richiede ${IMAGE_COST} crediti (hai ${currentCredits}).` },
-            { status: 402 },
-          );
-        }
-
-        await supabase
-          .from('user_credits')
-          .update({ credits: currentCredits - IMAGE_COST })
-          .eq('user_id', userId)
-          .eq('app_id', 'ugc');
-      }
-    }
-  }
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return NextResponse.json({ error: 'Servizio crediti non disponibile.' }, { status: 503 });
+  let reservationId: string | undefined;
 
   try {
     const body = (await req.json()) as {
@@ -60,6 +35,9 @@ export async function POST(req: Request) {
       mode: 'quality' | 'speed';
       aspectRatio: string;
     };
+    if (typeof body?.prompt !== 'string' || !body.prompt.trim() || typeof body.aspectRatio !== 'string') {
+      return NextResponse.json({ error: 'Prompt e proporzioni sono obbligatori.' }, { status: 400 });
+    }
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -72,6 +50,10 @@ export async function POST(req: Request) {
       parts.push({ inlineData: { mimeType, data } });
     }
     parts.push({ text: body.prompt });
+
+    const clerkUser = await currentUser();
+    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
+    if (!isAdmin) reservationId = (await reserveCredits(supabase, userId, 'ugc', IMAGE_COST)).id;
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -90,8 +72,16 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ error: 'Nessuna immagine generata dal modello' }, { status: 500 });
+    throw new Error('Nessuna immagine generata dal modello');
   } catch (err) {
+    if (reservationId) {
+      try { await refundCredits(supabase, reservationId); }
+      catch (refundError) {
+        return NextResponse.json({ error: (refundError as Error).message, reference: reservationId }, { status: 503 });
+      }
+    }
+    if (err instanceof CreditError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof SyntaxError) return NextResponse.json({ error: 'Richiesta non valida.' }, { status: 400 });
     if (err instanceof InvalidUgcImageError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }

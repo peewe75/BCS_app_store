@@ -48,9 +48,9 @@ const Signup: React.FC = () => {
       {/* Clerk SignUp component */}
       <SignUp
         routing="path"
-        path="/sign-up"
-        forceRedirectUrl="/dashboard"
-        fallbackRedirectUrl="/dashboard"
+        path="/tools/sign-up"
+        forceRedirectUrl="/tools/dashboard"
+        fallbackRedirectUrl="/tools/dashboard"
         appearance={{
           variables: {
             colorPrimary: '#3713ec',

@@ -365,11 +365,11 @@ export default function AppFormModal({ isOpen, onClose, onSave, editingApp }: Ap
             <div style={s.grid}>
               <div>
                 <label style={s.label}>Video src</label>
-                <input style={s.input} value={form.video_src} onChange={(e) => update('video_src', e.target.value)} placeholder="/video/UGC_video.mp4" />
+                <input style={s.input} value={form.video_src} onChange={(e) => update('video_src', e.target.value)} placeholder="/tools/video/UGC_video.mp4" />
               </div>
               <div>
                 <label style={s.label}>Poster src</label>
-                <input style={s.input} value={form.poster_src} onChange={(e) => update('poster_src', e.target.value)} placeholder="/images/1.png" />
+                <input style={s.input} value={form.poster_src} onChange={(e) => update('poster_src', e.target.value)} placeholder="/tools/images/1.png" />
               </div>
             </div>
           </div>

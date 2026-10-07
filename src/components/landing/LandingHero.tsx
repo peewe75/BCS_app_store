@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { SignedIn, SignedOut } from '@/src/components/PublicAuthState';
 import { env } from '@/src/lib/env';
 
 const fadeUp = {

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const successUrl = `${env.appUrl}/workspace/${appId}?checkout=success`;
+  const successUrl = `${env.appUrl}/tools/workspace/${appId}?checkout=success`;
   const cancelUrl = `${env.appUrl}/workspace/${appId}?checkout=cancelled`;
 
   const trialDays = (plan.trial_days as number | null | undefined) ?? 0;

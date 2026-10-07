@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import PaymentSupport from '@/src/components/PaymentSupport';
 import { WorkflowStage, GenerationResult, LogEntry } from '@/src/apps/ugc/types';
 import * as apiClient from '@/src/apps/ugc/api-client';
 import { ConfigurationScreen } from './ugc/ConfigurationScreen';
@@ -100,7 +101,7 @@ export default function UgcWorkspace() {
     }
 
     try {
-      const res = await fetch('/api/user/credits?app_id=ugc');
+      const res = await fetch('/tools/api/user/credits?app_id=ugc');
       const json = (await res.json().catch(() => ({}))) as { credits?: number; error?: string };
 
       if (!res.ok) {
@@ -148,7 +149,7 @@ export default function UgcWorkspace() {
     setCheckoutError(null);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
+      const response = await fetch('/tools/api/stripe/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ appId: 'ugc', planCode: 'credits' }),
@@ -689,6 +690,7 @@ export default function UgcWorkspace() {
               </button>
             </div>
             {checkoutError ? <p className="ugc-modal-error">{checkoutError}</p> : null}
+            {checkoutError && <PaymentSupport />}
           </div>
         </div>
       )}

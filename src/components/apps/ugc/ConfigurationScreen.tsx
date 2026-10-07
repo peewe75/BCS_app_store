@@ -97,7 +97,7 @@ export function ConfigurationScreen(props: ConfigurationScreenProps) {
                   objectFit: 'cover',
                   opacity: 0.55,
                 }}
-                src="/video/testata_UGC.mp4"
+                src="/tools/video/testata_UGC.mp4"
               />
               <div className="hero-text">
                 <span className="hero-kicker">From product photo to ad-ready output</span>

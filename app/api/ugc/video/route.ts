@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { isServerUserAdmin } from '@/src/lib/auth/admin-server';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { env, hasGeminiApiKey, hasSupabaseAdminConfig } from '@/src/lib/env';
+import { env, hasGeminiApiKey, hasSupabaseAdminConfig, hasClerkServerConfig } from '@/src/lib/env';
+import { CreditError, reserveCredits, refundCredits } from '@/src/lib/credits';
 import {
   extractSupportedImageBase64,
   InvalidUgcImageError,
@@ -50,6 +51,9 @@ async function downloadGeneratedVideoBase64(
 }
 
 export async function POST(req: Request) {
+  if (!hasClerkServerConfig() || !hasSupabaseAdminConfig()) {
+    return NextResponse.json({ error: 'Servizi della generazione non configurati.' }, { status: 503 });
+  }
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
@@ -64,40 +68,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Client Gemini non disponibile.' }, { status: 503 });
   }
 
-  if (hasSupabaseAdminConfig()) {
-    const supabase = createSupabaseAdminClient();
-    const clerkUser = await currentUser();
-    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
-
-    if (!isAdmin) {
-      if (supabase) {
-        const { data: creditRow } = await supabase
-          .from('user_credits')
-          .select('credits')
-          .eq('user_id', userId)
-          .eq('app_id', 'ugc')
-          .maybeSingle();
-
-        const currentCredits = (creditRow?.credits as number | null) ?? 0;
-
-        if (currentCredits < VIDEO_COST) {
-          return NextResponse.json(
-            { error: `Crediti insufficienti. Il video richiede ${VIDEO_COST} crediti (hai ${currentCredits}).` },
-            { status: 402 },
-          );
-        }
-
-        await supabase
-          .from('user_credits')
-          .update({ credits: currentCredits - VIDEO_COST })
-          .eq('user_id', userId)
-          .eq('app_id', 'ugc');
-      }
-    }
-  }
+  const supabase = createSupabaseAdminClient();
+  if (!supabase) return NextResponse.json({ error: 'Servizio crediti non disponibile.' }, { status: 503 });
+  let reservationId: string | undefined;
 
   try {
     const body = (await req.json()) as { imageBase64: string; prompt: string };
+    if (typeof body?.prompt !== 'string' || !body.prompt.trim() || typeof body.imageBase64 !== 'string') {
+      return NextResponse.json({ error: 'Immagine e prompt sono obbligatori.' }, { status: 400 });
+    }
     const { mimeType, data } = extractSupportedImageBase64(body.imageBase64);
 
     if (!VEO_REQUIRED_IMAGE_MIME_TYPES.has(mimeType)) {
@@ -106,6 +85,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+
+    const clerkUser = await currentUser();
+    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
+    if (!isAdmin) reservationId = (await reserveCredits(supabase, userId, 'ugc', VIDEO_COST)).id;
 
     let operation = await ai.models.generateVideos({
       model: env.veoAudioModel || VEO_AUDIO_MODEL_DEFAULT,
@@ -123,41 +106,37 @@ export async function POST(req: Request) {
     while (!operation.done) {
       attempts += 1;
       if (attempts > MAX_ATTEMPTS) {
-        return NextResponse.json(
-          { error: 'Timeout generazione video. Il server sta impiegando troppo tempo.' },
-          { status: 504 },
-        );
+        throw new CreditError('Timeout generazione video. Il server sta impiegando troppo tempo.', 504);
       }
 
       await new Promise((resolve) => setTimeout(resolve, POLL_DELAY_MS));
       operation = await ai.operations.getVideosOperation({ operation });
 
       if (operation.error) {
-        return NextResponse.json(
-          { error: `Veo API Error: ${operation.error.message ?? 'Unknown error'}` },
-          { status: 500 },
-        );
+        throw new Error(`Veo API Error: ${operation.error.message ?? 'Unknown error'}`);
       }
     }
 
     if (operation.error) {
-      return NextResponse.json(
-        { error: `Veo API Error: ${operation.error.message ?? 'Unknown error'}` },
-        { status: 500 },
-      );
+      throw new Error(`Veo API Error: ${operation.error.message ?? 'Unknown error'}`);
     }
 
     const generatedVideo = operation.response?.generatedVideos?.[0]?.video;
     if (!generatedVideo) {
-      return NextResponse.json(
-        { error: 'Video generato ma nessun payload video restituito da Veo 3.1.' },
-        { status: 500 },
-      );
+      throw new Error('Video generato ma nessun payload video restituito da Veo 3.1.');
     }
 
     const downloadedVideo = await downloadGeneratedVideoBase64(ai, generatedVideo);
     return NextResponse.json(downloadedVideo);
   } catch (err) {
+    if (reservationId) {
+      try { await refundCredits(supabase, reservationId); }
+      catch (refundError) {
+        return NextResponse.json({ error: (refundError as Error).message, reference: reservationId }, { status: 503 });
+      }
+    }
+    if (err instanceof CreditError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof SyntaxError) return NextResponse.json({ error: 'Richiesta non valida.' }, { status: 400 });
     if (err instanceof InvalidUgcImageError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }

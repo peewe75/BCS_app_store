@@ -33,7 +33,7 @@ export async function generateLifestylePrompt(params: {
   dimensions: { width: string; height: string; unit: string };
   promptLanguage: string;
 }): Promise<string> {
-  const res = await fetch('/api/ugc/prompt', {
+  const res = await fetch('/tools/api/ugc/prompt', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -53,7 +53,7 @@ export async function generateLifestyleImage(params: {
   referenceImageBase64: string | null;
   aspectRatio: string;
 }): Promise<string> {
-  const res = await fetch('/api/ugc/image', {
+  const res = await fetch('/tools/api/ugc/image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...params, mode: 'speed' }),
@@ -82,7 +82,7 @@ export async function generateVideoPrompt(params: {
   language: string;
   promptLanguage: string;
 }): Promise<string> {
-  const res = await fetch('/api/ugc/video-prompt', {
+  const res = await fetch('/tools/api/ugc/video-prompt', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -101,7 +101,7 @@ export async function generateVeoVideo(params: {
   imageBase64: string;
   prompt: string;
 }): Promise<string> {
-  const res = await fetch('/api/ugc/video', {
+  const res = await fetch('/tools/api/ugc/video', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),

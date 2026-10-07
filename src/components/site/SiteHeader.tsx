@@ -1,98 +1,13 @@
 'use client';
-
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
-import Logo from '@/src/components/Logo';
-import { getContextualSignOutUrl } from '@/src/lib/app-routes';
-
-export function SiteHeader() {
-  const pathname = usePathname();
-  const signOutUrl = getContextualSignOutUrl(pathname);
-
-  return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backdropFilter: 'blur(18px)',
-        background: 'rgba(245,245,247,0.82)',
-        borderBottom: '1px solid rgba(0,0,0,0.06)',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-        }}
-      >
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <Logo variant="dark" size="md" />
-        </Link>
-
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Utenti NON loggati: solo Accedi + Inizia gratis */}
-          <SignedOut>
-            <Link
-              href="/sign-in"
-              style={{
-                color: '#1D1D1F',
-                textDecoration: 'none',
-                fontWeight: 600,
-                padding: '10px 16px',
-                borderRadius: 999,
-                border: '1px solid rgba(0,0,0,0.08)',
-              }}
-            >
-              Accedi
-            </Link>
-            <Link
-              href="/sign-up"
-              style={{
-                color: '#fff',
-                textDecoration: 'none',
-                fontWeight: 700,
-                padding: '10px 18px',
-                borderRadius: 999,
-                background: '#3713ec',
-              }}
-            >
-              Inizia gratis
-            </Link>
-          </SignedOut>
-
-          {/* Utenti loggati: Dashboard + UserButton Clerk */}
-          <SignedIn>
-            <Link
-              href="/dashboard"
-              style={{
-                color: '#1D1D1F',
-                textDecoration: 'none',
-                fontWeight: 600,
-                padding: '10px 16px',
-                borderRadius: 999,
-                border: '1px solid rgba(0,0,0,0.08)',
-              }}
-            >
-              Dashboard
-            </Link>
-            <UserButton
-              afterSignOutUrl={signOutUrl}
-              appearance={{
-                elements: {
-                  avatarBox: { width: 36, height: 36 },
-                },
-              }}
-            />
-          </SignedIn>
-        </nav>
-      </div>
-    </header>
-  );
+import Link from 'next/link';import {useState} from 'react';import {Menu,X,ArrowUpRight} from 'lucide-react';
+import {SignedIn,SignedOut} from '@/src/components/PublicAuthState';import {UserButton} from '@clerk/nextjs';
+export function SiteHeader(){
+ const [open,setOpen]=useState(false);
+ return <header className="swa-header"><a href="#main-content" className="swa-skip">Vai al contenuto</a><div className="swa-header-inner">
+ <Link href="/marketplace" className="swa-brand" aria-label="SWA — Marketplace"><img src="/tools/swa/logo.webp" width="88" height="39" alt="SWA"/><span>Social Web<br/>Automation</span></Link>
+ <button className="swa-menu-button" aria-label={open?'Chiudi menu':'Apri menu'} aria-expanded={open} aria-controls="swa-navigation" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button>
+ <nav id="swa-navigation" className={open?'swa-nav open':'swa-nav'} aria-label="Navigazione principale" onClick={()=>setOpen(false)}>
+ <a href="https://www.socialautomation.app/servizi">Servizi</a><Link href="/marketplace" className="active">Marketplace <span className="swa-nav-dot"/></Link><a href="https://www.socialautomation.app/metodo">Il metodo SWA</a>
+ <SignedOut><Link href="/sign-in" prefetch={false} className="swa-nav-account">Accedi <ArrowUpRight size={15}/></Link></SignedOut>
+ <SignedIn><Link href="/dashboard" prefetch={false}>Area personale</Link><UserButton/></SignedIn></nav></div></header>;
 }

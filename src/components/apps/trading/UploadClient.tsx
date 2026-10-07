@@ -94,7 +94,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/trading/reports/${reportId}/status`, { cache: 'no-store' })
+        const response = await fetch(`/tools/api/trading/reports/${reportId}/status`, { cache: 'no-store' })
         const data = (await response.json()) as ReportStatusResponse & { error?: string }
         if (!response.ok) throw new Error(data.error ?? 'Errore nel recupero dello stato')
         if (!active) return
@@ -155,7 +155,7 @@ export function UploadClient({ allowedYears, plan, onReportReady }: UploadClient
       formData.append('year', String(year))
       formData.append('accountScale', accountScale)
 
-      const response = await fetch('/api/trading/upload', { method: 'POST', body: formData })
+      const response = await fetch('/tools/api/trading/upload', { method: 'POST', body: formData })
       const data = await readJsonResponse<{ reportId?: string }>(response)
 
       if (!response.ok || !data.reportId) {

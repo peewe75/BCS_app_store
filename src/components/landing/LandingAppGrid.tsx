@@ -7,15 +7,15 @@ import type { AppRecord } from '@/src/lib/catalog';
 import { getAppPublicRoute } from '@/src/lib/app-routes';
 
 const APP_IMAGES: Record<string, string> = {
-  ugc: '/images/1.png',
-  'ai-crisi': '/images/2.png',
-  trading: '/images/3.png',
-  ravvedimento: '/images/4.png',
-  forf: '/images/ForfApp.png',
-  softi: '/images/Softi.png',
-  'legal-ai-penale': '/images/App_Penale.png',
-  consenso: '/images/Consenso.png',
-  'crypto-fiscale': '/images/Trading Crypto.png',
+  ugc: '/tools/images/1.png',
+  'ai-crisi': '/tools/images/2.png',
+  trading: '/tools/images/3.png',
+  ravvedimento: '/tools/images/4.png',
+  forf: '/tools/images/ForfApp.png',
+  softi: '/tools/images/Softi.png',
+  'legal-ai-penale': '/tools/images/App_Penale.png',
+  consenso: '/tools/images/Consenso.png',
+  'crypto-fiscale': '/tools/images/Trading Crypto.png',
 };
 
 const CTA_COPY: Record<string, string> = {

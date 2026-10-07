@@ -151,7 +151,7 @@ export function ReportsTable({ highlightId, onSelectTaxForm }: ReportsTableProps
                       {report.status === 'ready' && (
                         <>
                           <a
-                            href={`/api/trading/reports/${report.id}/download`}
+                            href={`/tools/api/trading/reports/${report.id}/download`}
                             style={{
                               padding: '6px 14px',
                               borderRadius: 100,

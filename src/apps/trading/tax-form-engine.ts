@@ -275,8 +275,8 @@ export function createTaxFormPreview(args: ReportPreviewInput): TaxFormPreview {
     can_generate_facsimile_pdf: dedupedBlockingIssues.length === 0,
     internal_pdf_available: args.internalPdfAvailable ?? false,
     facsimile_pdf_available: args.facsimilePdfAvailable ?? false,
-    internal_download_url: `/api/trading/reports/${args.report.id}/tax-form/control/download`,
-    facsimile_download_url: `/api/trading/reports/${args.report.id}/tax-form/download`,
+    internal_download_url: `/tools/api/trading/reports/${args.report.id}/tax-form/control/download`,
+    facsimile_download_url: `/tools/api/trading/reports/${args.report.id}/tax-form/download`,
     manual_overrides: manualOverrides,
   }
 }

@@ -97,7 +97,7 @@ export function formatCurrency(value: number): string {
 }
 
 export async function findAtecoCodes(activityDescription: string): Promise<AtecoSuggestion[]> {
-  const response = await fetch('/api/forfapp/ateco', {
+  const response = await fetch('/tools/api/forfapp/ateco', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ activityDescription }),

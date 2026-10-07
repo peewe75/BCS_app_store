@@ -1,5 +1,2 @@
-import SignInShell from '@/src/components/shells/SignInShell';
-
-export default function SignInPage() {
-  return <SignInShell />;
-}
+import SignInShell from '@/src/components/shells/SignInShell';import {env} from '@/src/lib/env';import Link from 'next/link';
+export default function SignInPage(){if(!env.clerkPublishableKey)return <main id="main-content" className="swa-section swa-access"><p className="swa-kicker">ANTEPRIMA LOCALE</p><h1>Il tuo spazio SWA.</h1><p>In questa anteprima puoi esplorare il catalogo e le pagine dei tool. Il login sarà disponibile dopo il collegamento del servizio account.</p><Link className="swa-button" href="/marketplace">Esplora il marketplace</Link></main>;return <SignInShell/>;}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import PaymentSupport from '@/src/components/PaymentSupport';
 import { useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useAdminStatus } from '@/src/hooks/useAdminStatus';
@@ -135,7 +136,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     if (!redeemCode.trim() || redeemLoading) return;
     setRedeemLoading(true);
     setRedeemError(null);
-    const res = await fetch('/api/redeem', {
+    const res = await fetch('/tools/api/redeem', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ code: redeemCode.trim().toUpperCase() }),
@@ -159,7 +160,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     if (claimFreeLoading) return;
     setClaimFreeLoading(true);
     setClaimFreeError(null);
-    const res = await fetch(`/api/ugc/claim-free`, { method: 'POST' });
+    const res = await fetch(`/tools/api/ugc/claim-free`, { method: 'POST' });
     const json = await res.json() as { credits?: number; message?: string; error?: string };
     setClaimFreeLoading(false);
     if (res.ok) {
@@ -181,7 +182,8 @@ export default function AppAccessPage({ slug }: { slug: string }) {
 
     setCheckoutLoading(true);
     setCheckoutError(null);
-    const response = await fetch('/api/stripe/checkout', {
+    try {
+    const response = await fetch('/tools/api/stripe/checkout', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -207,6 +209,11 @@ export default function AppAccessPage({ slug }: { slug: string }) {
     }
 
     setCheckoutError(payload?.error ?? 'Checkout Stripe non disponibile in questo momento.');
+    } catch {
+      setCheckoutError('Impossibile collegarsi al pagamento. Contatta SWA prima di riprovare se l’addebito è incerto.');
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -476,6 +483,7 @@ export default function AppAccessPage({ slug }: { slug: string }) {
           )}
 
           {/* Redeem code box */}
+          {checkoutError && <PaymentSupport />}
           <div style={{ marginTop: 20 }}>
             <button
               onClick={() => setRedeemOpen((o) => !o)}

@@ -36,9 +36,9 @@ const Login: React.FC = () => {
       {/* Clerk SignIn component with custom appearance */}
       <SignIn
         routing="path"
-        path="/sign-in"
-        forceRedirectUrl="/dashboard"
-        fallbackRedirectUrl="/dashboard"
+        path="/tools/sign-in"
+        forceRedirectUrl="/tools/dashboard"
+        fallbackRedirectUrl="/tools/dashboard"
         appearance={{
           variables: {
             colorPrimary: '#3713ec',

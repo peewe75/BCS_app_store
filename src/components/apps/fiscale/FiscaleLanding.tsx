@@ -31,8 +31,8 @@ const tools = [
       { name: 'Pro', price: '€ 34,90', desc: 'Report illimitati + storico' },
     ],
     workspaceHref: '/workspace/trading',
-    videoSrc: '/video/trading_fiscale.mp4',
-    posterSrc: '/images/3.png',
+    videoSrc: '/tools/video/trading_fiscale.mp4',
+    posterSrc: '/tools/images/3.png',
   },
   {
     id: 'crypto',

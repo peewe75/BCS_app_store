@@ -49,7 +49,7 @@ export function TaxFormClient({ reportId, onBack }: TaxFormClientProps) {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/trading/reports/${reportId}/tax-form`, { cache: 'no-store' })
+        const response = await fetch(`/tools/api/trading/reports/${reportId}/tax-form`, { cache: 'no-store' })
         const data = (await response.json()) as TaxFormPayload
         if (!response.ok) throw new Error(data.error ?? 'Errore nel caricamento del facsimile.')
         if (!active) return
@@ -83,7 +83,7 @@ export function TaxFormClient({ reportId, onBack }: TaxFormClientProps) {
     setMessage(null)
     setError(null)
     try {
-      const response = await fetch(`/api/trading/reports/${reportId}/tax-form`, {
+      const response = await fetch(`/tools/api/trading/reports/${reportId}/tax-form`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ manualOverrides }),
@@ -105,7 +105,7 @@ export function TaxFormClient({ reportId, onBack }: TaxFormClientProps) {
     setMessage(null)
     setError(null)
     try {
-      const response = await fetch(`/api/trading/reports/${reportId}/tax-form/generate`, {
+      const response = await fetch(`/tools/api/trading/reports/${reportId}/tax-form/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ manualOverrides }),

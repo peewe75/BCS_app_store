@@ -14,27 +14,13 @@ export async function PUT(req: Request) {
     const body = (await req.json()) as { user_id?: string; app_id?: string; delta?: number };
     const { user_id, app_id, delta } = body;
 
-    if (!user_id || !app_id || typeof delta !== 'number') {
+    if (!user_id || !app_id || !Number.isSafeInteger(delta) || Math.abs(delta!) > 2147483647) {
       return NextResponse.json({ error: 'user_id, app_id e delta sono obbligatori.' }, { status: 400 });
     }
 
-    // Get current credits
-    const { data: existing } = await supabase
-      .from('user_credits')
-      .select('credits')
-      .eq('user_id', user_id)
-      .eq('app_id', app_id)
-      .maybeSingle();
-
-    const currentCredits = (existing?.credits as number | null) ?? 0;
-    const newCredits = Math.max(0, currentCredits + delta);
-
-    const { error } = await supabase
-      .from('user_credits')
-      .upsert(
-        { user_id, app_id, credits: newCredits },
-        { onConflict: 'user_id,app_id' },
-      );
+    const { data: newCredits, error } = await supabase.rpc('adjust_app_credits', {
+      p_user_id: user_id, p_app_id: app_id, p_delta: delta,
+    });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
