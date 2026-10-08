@@ -13,6 +13,8 @@ import { isServerUserAdmin } from '@/src/lib/auth/admin-server'
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin'
 import type { Plan } from '@/src/apps/trading/types'
 
+export const maxDuration = 60
+
 type AccountScalePreference = 'standard' | 'centesimale'
 
 export async function POST(req: NextRequest) {
