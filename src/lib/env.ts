@@ -41,6 +41,7 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  swaSsoSecret: process.env.SWA_MARKETPLACE_SSO_SECRET ?? '',
   veoAudioModel:
     process.env.VEO_AUDIO_MODEL ??
     'veo-3.1-generate-preview',

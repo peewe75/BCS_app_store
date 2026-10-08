@@ -35,25 +35,13 @@ interface ConfigurationScreenProps {
   credits: number | null;
   creditsLoading: boolean;
   creditsError: string | null;
+  personalApiReady: boolean;
   children?: React.ReactNode;
-}
-
-function getCreditsTone(credits: number | null) {
-  if (credits === null) return 'neutral';
-  if (credits > 100) return 'positive';
-  if (credits >= 25) return 'warning';
-  return 'danger';
-}
-
-function formatCreditsLabel(credits: number | null) {
-  if (credits === null) return 'Saldo non disponibile';
-  return `${credits} ${credits === 1 ? 'credito' : 'crediti'}`;
 }
 
 export function ConfigurationScreen(props: ConfigurationScreenProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasSecondaryContent = Boolean(props.children);
-  const creditsTone = getCreditsTone(props.credits);
 
   return (
     <div className="ugc-workspace">
@@ -62,22 +50,16 @@ export function ConfigurationScreen(props: ConfigurationScreenProps) {
           <div className="workspace-heading">
             <span className="workspace-eyebrow">BCS AI Workspace</span>
             <h1>UGC Ad Creator</h1>
-            <p>Carica il prodotto, prepara la scena e genera asset UGC con crediti sempre visibili.</p>
+            <p>Carica il prodotto, collega la tua API Gemini e genera gli asset UGC usando il tuo account Google.</p>
           </div>
 
           <div className="workspace-credits-panel">
-            <span className="workspace-credits-label">UGC Credits</span>
-            {props.creditsLoading ? (
-              <div className="credits-skeleton" aria-hidden="true">
-                <div className="credits-skeleton-shimmer" />
-              </div>
-            ) : (
-              <div className={`credits-badge credits-${creditsTone}`}>
-                <span className="credits-badge-icon">UGC</span>
-                <span className="credits-badge-value">{formatCreditsLabel(props.credits)}</span>
-              </div>
-            )}
-            {props.creditsError ? <p className="credits-help">{props.creditsError}</p> : <p className="credits-help">Il saldo si aggiorna dopo ogni generazione riuscita.</p>}
+            <span className="workspace-credits-label">API personale</span>
+            <div className={`credits-badge ${props.personalApiReady ? 'credits-positive' : 'credits-danger'}`}>
+              <span className="credits-badge-icon">API</span>
+              <span className="credits-badge-value">{props.personalApiReady ? 'Collegata' : 'Da collegare'}</span>
+            </div>
+            <p className="credits-help">I consumi sono gestiti direttamente dal tuo account Google. SWA non salva la chiave.</p>
           </div>
         </div>
 
@@ -278,16 +260,16 @@ export function ConfigurationScreen(props: ConfigurationScreenProps) {
                   <span className="result-title">Workflow Preview</span>
                 </div>
                 <p className="workspace-intro-copy">
-                  The right column will host prompt review, generated visuals, video rendering and the credit-aware call to action flow.
+                  La colonna destra mostrerà prompt, immagini e video generati usando la tua API personale.
                 </p>
                 <div className="workspace-summary-list">
                   <div className="workspace-summary-item">
-                    <span className="workspace-summary-value">25</span>
-                    <span className="workspace-summary-label">credits for each image</span>
+                    <span className="workspace-summary-value">Gemini</span>
+                    <span className="workspace-summary-label">chiave personale richiesta</span>
                   </div>
                   <div className="workspace-summary-item">
-                    <span className="workspace-summary-value">75</span>
-                    <span className="workspace-summary-label">credits for each video</span>
+                    <span className="workspace-summary-value">Veo</span>
+                    <span className="workspace-summary-label">accesso video sul tuo progetto Google</span>
                   </div>
                   <div className="workspace-summary-item">
                     <span className="workspace-summary-value">2 cols</span>

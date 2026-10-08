@@ -13,8 +13,6 @@ import {
   LANGUAGES,
 } from '@/src/apps/ugc/constants';
 
-const IMAGE_COST = 25;
-const VIDEO_COST = 75;
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
@@ -50,6 +48,7 @@ function TooltipButton(props: TooltipButtonProps) {
 }
 
 export default function UgcWorkspace() {
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [lightbox, setLightbox] = useState<{ src: string; type: 'image' | 'video' } | null>(null);
   const [currentStage, setCurrentStage] = useState<WorkflowStage>(WorkflowStage.IDLE);
   const [data, setData] = useState<GenerationResult>({
@@ -61,8 +60,6 @@ export default function UgcWorkspace() {
   });
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [credits, setCredits] = useState<number | null>(null);
-  const [creditsLoading, setCreditsLoading] = useState(true);
-  const [creditsError, setCreditsError] = useState<string | null>(null);
   const [creditsModal, setCreditsModal] = useState<CreditsModalState | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -84,37 +81,15 @@ export default function UgcWorkspace() {
   const [prodUnit, setProdUnit] = useState('cm');
 
   useEffect(() => {
+    setGeminiApiKey(sessionStorage.getItem('swa-ugc-gemini-key') ?? '');
+  }, []);
+
+  useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [logs]);
 
-  useEffect(() => {
-    void refreshCredits(true);
-  }, []);
-
   const addLog = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
     setLogs((prev) => [...prev, { timestamp: new Date(), message, type }]);
-  };
-
-  const refreshCredits = async (showSkeleton = false) => {
-    if (showSkeleton) {
-      setCreditsLoading(true);
-    }
-
-    try {
-      const res = await fetch('/tools/api/user/credits?app_id=ugc');
-      const json = (await res.json().catch(() => ({}))) as { credits?: number; error?: string };
-
-      if (!res.ok) {
-        throw new Error(json.error ?? 'Impossibile recuperare i crediti.');
-      }
-
-      setCredits(json.credits ?? 0);
-      setCreditsError(null);
-    } catch {
-      setCreditsError('Saldo non disponibile al momento.');
-    } finally {
-      setCreditsLoading(false);
-    }
   };
 
   const openInsufficientCreditsModal = (
@@ -234,6 +209,7 @@ export default function UgcWorkspace() {
   };
 
   const runAnalysis = async () => {
+    if (!geminiApiKey.trim()) { addLog('Inserisci prima la tua API key Gemini.', 'error'); return; }
     if (data.productImages.length === 0) return;
 
     try {
@@ -262,6 +238,7 @@ export default function UgcWorkspace() {
   };
 
   const runImageGeneration = async () => {
+    if (!geminiApiKey.trim()) { addLog('Inserisci prima la tua API key Gemini.', 'error'); return; }
     if (!data.imagePrompt) return;
 
     try {
@@ -278,7 +255,6 @@ export default function UgcWorkspace() {
       setData((prev) => ({ ...prev, generatedImage: lifestyleImg }));
       setCurrentStage(WorkflowStage.REVIEWING_GENERATED_IMAGE);
       addLog('Immagine generata. Revisiona e continua.', 'success');
-      void refreshCredits();
     } catch (error: unknown) {
       if (error instanceof apiClient.InsufficientCreditsError) {
         openInsufficientCreditsModal(error, WorkflowStage.REVIEWING_IMAGE_PROMPT);
@@ -291,6 +267,7 @@ export default function UgcWorkspace() {
   };
 
   const runVideoPromptGeneration = async () => {
+    if (!geminiApiKey.trim()) { addLog('Inserisci prima la tua API key Gemini.', 'error'); return; }
     if (!data.generatedImage) return;
 
     try {
@@ -315,6 +292,7 @@ export default function UgcWorkspace() {
   };
 
   const runVideoGeneration = async () => {
+    if (!geminiApiKey.trim()) { addLog('Inserisci prima la tua API key Gemini.', 'error'); return; }
     if (!data.generatedImage || !data.videoPrompt) return;
 
     try {
@@ -329,7 +307,6 @@ export default function UgcWorkspace() {
       setData((prev) => ({ ...prev, videoUrl }));
       addLog('Video generato con successo!', 'success');
       setCurrentStage(WorkflowStage.COMPLETED);
-      void refreshCredits();
     } catch (error: unknown) {
       if (error instanceof apiClient.InsufficientCreditsError) {
         openInsufficientCreditsModal(error, WorkflowStage.REVIEWING_VIDEO_PROMPT);
@@ -415,15 +392,18 @@ export default function UgcWorkspace() {
     setCheckoutLoading(false);
   };
 
-  const imageDisabledReason =
-    credits !== null && credits < IMAGE_COST ? `Crediti insufficienti (servono ${IMAGE_COST})` : null;
-  const videoDisabledReason =
-    credits !== null && credits < VIDEO_COST ? `Crediti insufficienti (servono ${VIDEO_COST})` : null;
+  const imageDisabledReason = !geminiApiKey.trim() ? 'Inserisci prima la tua API key Gemini' : null;
+  const videoDisabledReason = !geminiApiKey.trim() ? 'Inserisci prima la tua API key Gemini' : null;
   const isImageGenerationBlocked = currentStage === WorkflowStage.GENERATING_IMAGE || Boolean(imageDisabledReason);
   const isVideoGenerationBlocked = currentStage === WorkflowStage.GENERATING_VIDEO || Boolean(videoDisabledReason);
 
   return (
     <>
+      <section className="ugc-api-key-panel" aria-labelledby="ugc-api-key-title">
+        <div><strong id="ugc-api-key-title">Collega la tua API Gemini</strong><p>Obbligatoria per generare immagini e video. La chiave resta in questa sessione del browser e non viene salvata nel database SWA.</p></div>
+        <label>API key Gemini<input type="password" autoComplete="off" value={geminiApiKey} placeholder="AIza…" onChange={(event)=>{const value=event.target.value;setGeminiApiKey(value);if(value.trim())sessionStorage.setItem('swa-ugc-gemini-key',value.trim());else sessionStorage.removeItem('swa-ugc-gemini-key')}} /></label>
+        <span className={geminiApiKey.trim()?'ugc-key-ready':'ugc-key-missing'}>{geminiApiKey.trim()?'API personale collegata':'API key mancante: la generazione è bloccata'}</span>
+      </section>
       <ConfigurationScreen
         productImages={data.productImages}
         onUpload={handleFileUpload}
@@ -454,8 +434,9 @@ export default function UgcWorkspace() {
         setImageStyle={setImageStyle}
         imageStyleOptions={IMAGE_STYLES}
         credits={credits}
-        creditsLoading={creditsLoading}
-        creditsError={creditsError}
+        creditsLoading={false}
+        creditsError={null}
+        personalApiReady={Boolean(geminiApiKey.trim())}
       >
         {currentStage !== WorkflowStage.IDLE && (
           <div className="results-section">
@@ -502,7 +483,7 @@ export default function UgcWorkspace() {
                     >
                       Genera Immagine
                     </TooltipButton>
-                    <p className="ugc-cost-note">Costo: questa operazione costa {IMAGE_COST} crediti.</p>
+                    <p className="ugc-cost-note">Il consumo viene addebitato direttamente al progetto Google associato alla tua API.</p>
                   </>
                 )}
 
@@ -574,7 +555,7 @@ export default function UgcWorkspace() {
                     >
                       Genera Video
                     </TooltipButton>
-                    <p className="ugc-cost-note">Costo: questa operazione costa {VIDEO_COST} crediti.</p>
+                    <p className="ugc-cost-note">La generazione Veo richiede che il tuo progetto Google abbia accesso al modello video.</p>
                   </>
                 )}
 

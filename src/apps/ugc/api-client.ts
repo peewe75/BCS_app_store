@@ -1,5 +1,9 @@
-// Server-side API client: all Gemini calls go through Next.js API routes
-// so the GEMINI_API_KEY never reaches the browser.
+// The personal Gemini key is kept only in sessionStorage and sent over HTTPS
+// to the generation route. It is never persisted by Marketplace.
+function ugcHeaders() {
+  const key = typeof window === 'undefined' ? '' : sessionStorage.getItem('swa-ugc-gemini-key')?.trim();
+  return { 'Content-Type': 'application/json', ...(key ? { 'x-ugc-gemini-key': key } : {}) };
+}
 
 export class InsufficientCreditsError extends Error {
   required: number;
@@ -35,7 +39,7 @@ export async function generateLifestylePrompt(params: {
 }): Promise<string> {
   const res = await fetch('/tools/api/ugc/prompt', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: ugcHeaders(),
     body: JSON.stringify(params),
   });
 
@@ -55,7 +59,7 @@ export async function generateLifestyleImage(params: {
 }): Promise<string> {
   const res = await fetch('/tools/api/ugc/image', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: ugcHeaders(),
     body: JSON.stringify({ ...params, mode: 'speed' }),
   });
 
@@ -84,7 +88,7 @@ export async function generateVideoPrompt(params: {
 }): Promise<string> {
   const res = await fetch('/tools/api/ugc/video-prompt', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: ugcHeaders(),
     body: JSON.stringify(params),
   });
 
@@ -103,7 +107,7 @@ export async function generateVeoVideo(params: {
 }): Promise<string> {
   const res = await fetch('/tools/api/ugc/video', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: ugcHeaders(),
     body: JSON.stringify(params),
   });
 

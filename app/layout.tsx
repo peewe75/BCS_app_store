@@ -14,5 +14,5 @@ export const metadata:Metadata={
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
  const content=<><SiteHeader/>{children}<SiteFooter/></>;
- return <html lang="it"><body>{env.clerkPublishableKey?<ClerkProvider publishableKey={env.clerkPublishableKey}>{content}</ClerkProvider>:content}</body></html>;
+ return <html lang="it" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:`(()=>{try{const saved=localStorage.getItem('swa-theme');const theme=saved==='dark'||saved==='light'?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch{document.documentElement.dataset.theme='light'}})()`}}/></head><body>{env.clerkPublishableKey?<ClerkProvider publishableKey={env.clerkPublishableKey}>{content}</ClerkProvider>:content}</body></html>;
 }

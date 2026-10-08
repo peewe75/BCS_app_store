@@ -1,17 +1,18 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { isServerUserAdmin } from '@/src/lib/auth/admin-server';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { env, hasGeminiApiKey, hasSupabaseAdminConfig, hasClerkServerConfig } from '@/src/lib/env';
+import { env, hasSupabaseAdminConfig } from '@/src/lib/env';
 import { CreditError, reserveCredits, refundCredits } from '@/src/lib/credits';
 import {
   extractSupportedImageBase64,
   InvalidUgcImageError,
 } from '@/src/apps/ugc/image-data';
 import { getGeminiServerClient } from '@/src/lib/google-genai';
+import { GoogleGenAI } from '@google/genai';
+import { getRequestUser, requestGeminiKey } from '@/src/lib/auth/request-user';
 
 export const maxDuration = 300;
 
@@ -51,25 +52,21 @@ async function downloadGeneratedVideoBase64(
 }
 
 export async function POST(req: Request) {
-  if (!hasClerkServerConfig() || !hasSupabaseAdminConfig()) {
-    return NextResponse.json({ error: 'Servizi della generazione non configurati.' }, { status: 503 });
-  }
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await getRequestUser(req);
+  if (!user) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
 
-  if (!hasGeminiApiKey()) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY non configurata.' }, { status: 500 });
-  }
-
-  const ai = getGeminiServerClient();
+  const personalApiKey = req.headers.get('x-ugc-gemini-key')?.trim() || '';
+  const apiKey = requestGeminiKey(req);
+  if (!apiKey) return NextResponse.json({ error: 'Inserisci la tua API key Gemini prima di generare.' }, { status: 400 });
+  const ai = personalApiKey ? new GoogleGenAI({ apiKey }) : getGeminiServerClient();
   if (!ai) {
     return NextResponse.json({ error: 'Client Gemini non disponibile.' }, { status: 503 });
   }
 
-  const supabase = createSupabaseAdminClient();
-  if (!supabase) return NextResponse.json({ error: 'Servizio crediti non disponibile.' }, { status: 503 });
+  const supabase = hasSupabaseAdminConfig() ? createSupabaseAdminClient() : null;
+  if (!personalApiKey && !supabase) return NextResponse.json({ error: 'Servizio crediti non disponibile.' }, { status: 503 });
   let reservationId: string | undefined;
 
   try {
@@ -86,9 +83,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const clerkUser = await currentUser();
-    const isAdmin = await isServerUserAdmin(userId, clerkUser?.publicMetadata?.role, supabase);
-    if (!isAdmin) reservationId = (await reserveCredits(supabase, userId, 'ugc', VIDEO_COST)).id;
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin'
+      || (!personalApiKey && supabase ? await isServerUserAdmin(user.userId, user.role, supabase) : false);
+    if (!personalApiKey && !isAdmin && supabase) reservationId = (await reserveCredits(supabase, user.userId, 'ugc', VIDEO_COST)).id;
 
     let operation = await ai.models.generateVideos({
       model: env.veoAudioModel || VEO_AUDIO_MODEL_DEFAULT,
@@ -130,7 +127,7 @@ export async function POST(req: Request) {
     return NextResponse.json(downloadedVideo);
   } catch (err) {
     if (reservationId) {
-      try { await refundCredits(supabase, reservationId); }
+      try { if (supabase) await refundCredits(supabase, reservationId); }
       catch (refundError) {
         return NextResponse.json({ error: (refundError as Error).message, reference: reservationId }, { status: 503 });
       }

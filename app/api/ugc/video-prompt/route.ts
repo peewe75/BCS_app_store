@@ -1,19 +1,19 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import {
   extractSupportedImageBase64,
   InvalidUgcImageError,
 } from '@/src/apps/ugc/image-data';
+import { getRequestUser, requestGeminiKey } from '@/src/lib/auth/request-user';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  const user = await getRequestUser(req);
+  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
+  const apiKey = requestGeminiKey(req);
+  if (!apiKey) return NextResponse.json({ error: 'Inserisci la tua API key Gemini prima di generare.' }, { status: 400 });
 
   try {
     const body = (await req.json()) as {

@@ -9,6 +9,12 @@
   --color-primary: #3713ec;
 }
 
+html[data-theme='dark'] {
+  --color-bg: #08110e;
+  --color-text: #edf4f1;
+  --color-muted: #a8b7b0;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1090,3 +1096,13 @@ img {
     max-width: none;
   }
 }
+/* UGC BYO API: the key stays in sessionStorage and is never printed back. */
+.ugc-api-key-panel{max-width:1180px;margin:24px auto 0;padding:20px 24px;border:1px solid #d7e3db;border-left:4px solid #153b32;border-radius:8px;background:#f7faf7;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.65fr);gap:18px;align-items:end}.ugc-api-key-panel strong{font-size:16px}.ugc-api-key-panel p{margin:7px 0 0;color:#58685f;font-size:12px;line-height:1.6}.ugc-api-key-panel label{font-size:11px;font-weight:700}.ugc-api-key-panel input{display:block;width:100%;margin-top:7px;padding:11px 12px;border:1px solid #b9c9bf;border-radius:5px;background:#fff;color:#15231f}.ugc-api-key-panel>span{grid-column:1/-1;font-size:11px;font-weight:700}.ugc-key-ready{color:#23704d}.ugc-key-missing{color:#a13e2a}@media(max-width:700px){.ugc-api-key-panel{margin:16px;grid-template-columns:1fr}}
+
+html[data-theme='dark'] .ugc-workspace{--bg-white:#101a16;--bg-light-gray:#111d18;--text-dark:#edf4f1;--text-gray:#a8b7b0;--primary-purple-light:#251b35;--surface-border:#304139;--surface-shadow:0 24px 64px -32px rgba(0,0,0,.75)}
+html[data-theme='dark'] .ugc-workspace .workspace-heading p,html[data-theme='dark'] .ugc-workspace .workspace-credits-label{color:#a8b7b0}
+html[data-theme='dark'] .ugc-workspace .workspace-credits-panel,html[data-theme='dark'] .ugc-workspace .main-card,html[data-theme='dark'] .ugc-workspace .preview-card,html[data-theme='dark'] .ugc-workspace .modal-content{background:#101a16;color:#edf4f1;border-color:#304139}
+html[data-theme='dark'] .ugc-workspace input,html[data-theme='dark'] .ugc-workspace select,html[data-theme='dark'] .ugc-workspace textarea{background:#0c1511;color:#edf4f1;border-color:#3b4e45}
+html[data-theme='dark'] .ugc-api-key-panel{background:#101a16;border-color:#304139;border-left-color:#64d7aa}
+html[data-theme='dark'] .ugc-api-key-panel p{color:#a8b7b0}
+html[data-theme='dark'] .ugc-api-key-panel input{background:#08110e;color:#edf4f1;border-color:#3b4e45}
