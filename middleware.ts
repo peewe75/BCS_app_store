@@ -27,7 +27,8 @@ export default async function middleware(request: NextRequest, event: NextFetchE
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpg|jpeg|png|gif|svg|webp|ico|ttf|woff2?|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    '/admin/:path*',
+    '/dashboard/:path*',
+    '/api/((?!public/catalog|webhooks/stripe|webhooks/clerk).*)',
   ],
 };
