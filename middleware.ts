@@ -2,10 +2,14 @@ import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server';
 import { env } from '@/src/lib/env';
 
-const authenticate = clerkMiddleware({
-  publishableKey: env.clerkPublishableKey,
-  secretKey: env.clerkSecretKey,
-});
+function runConfiguredClerk(
+  request: NextRequest,
+  event: NextFetchEvent,
+  publishableKey: string,
+  secretKey: string,
+) {
+  return clerkMiddleware({ publishableKey, secretKey })(request, event);
+}
 
 export default function middleware(request: NextRequest, event: NextFetchEvent) {
   // nextUrl.pathname excludes the configured /tools basePath.
@@ -14,16 +18,18 @@ export default function middleware(request: NextRequest, event: NextFetchEvent) 
   if (path === '/api/public/catalog' || path === '/api/webhooks/stripe' || path === '/api/webhooks/clerk') {
     return NextResponse.next();
   }
-  if (!env.clerkPublishableKey || !env.clerkSecretKey) {
+  const publishableKey = env.clerkPublishableKey;
+  const secretKey = env.clerkSecretKey;
+  if (!publishableKey || !secretKey) {
     const protectedRoute = path.startsWith('/api/') || path === '/admin' || path.startsWith('/admin/')
       || path === '/dashboard' || path.startsWith('/dashboard/')
-      || (Boolean(env.clerkPublishableKey) && path.startsWith('/workspace/'));
+      || (Boolean(publishableKey) && path.startsWith('/workspace/'));
     if (protectedRoute) {
       return NextResponse.json({ error: 'Servizio di accesso non configurato' }, { status: 503 });
     }
     return NextResponse.next();
   }
-  return authenticate(request, event);
+  return runConfiguredClerk(request, event, publishableKey, secretKey);
 }
 
 export const config = {
