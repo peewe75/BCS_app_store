@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { isServerUserAdmin } from '@/src/lib/auth/admin-server';
 import { createSupabaseAdminClient } from '@/src/lib/supabase/admin';
-import { hasSupabaseAdminConfig } from '@/src/lib/env';
+import { env, hasSupabaseAdminConfig } from '@/src/lib/env';
 import { CreditError, reserveCredits, refundCredits } from '@/src/lib/credits';
 import {
   extractSupportedImageBase64,
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const modelName = 'gemini-2.5-flash-image';
+    const modelName = env.ugcImageModel;
 
     const parts: { inlineData?: { mimeType: string; data: string }; text?: string }[] = [];
 

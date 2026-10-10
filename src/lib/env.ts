@@ -45,6 +45,15 @@ export const env = {
   veoAudioModel:
     process.env.VEO_AUDIO_MODEL ??
     'veo-3.1-generate-preview',
+  // Google serves the 2.5 models only to accounts that used them before, so
+  // personal keys created later get a 404. Override via env when Google
+  // retires these IDs.
+  ugcTextModel:
+    process.env.UGC_TEXT_MODEL ??
+    'gemini-3.8-flash',
+  ugcImageModel:
+    process.env.UGC_IMAGE_MODEL ??
+    'gemini-3.1-flash-image',
 };
 
 export function hasClerkServerConfig() {

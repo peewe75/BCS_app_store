@@ -5,6 +5,7 @@ import {
   InvalidUgcImageError,
 } from '@/src/apps/ugc/image-data';
 import { getRequestUser, requestGeminiKey } from '@/src/lib/auth/request-user';
+import { env } from '@/src/lib/env';
 
 export const maxDuration = 60;
 
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     const { mimeType, data } = extractSupportedImageBase64(body.generatedImageBase64);
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: env.ugcTextModel,
       contents: {
         parts: [
           { inlineData: { mimeType, data } },
